@@ -1,0 +1,34 @@
+---
+title: "The Golem of Prague"
+author: "Fernando Miguez"
+date: "5/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+here.pth <- here()
+knitr::opts_chunk$set(echo = TRUE, root.dir = here.pth)
+```
+
+These are notes on chapter 1 for the book "Statistical Rethinking" by Richard McElreath
+
+# Chapter 1: Golem of Prague
+
+The golem is a metaphor for a model which could be conceptual, mathematical or statistical. The golem (model) executes instructions as told and the scientific insights might be inspired or challenged by how it behaves.
+
+
+> models are powerful, but clumsy; they challenge and inspire intuition. 
+
+> There is no wisdom in the golem 
+
+> No statistical tool (or model) does anything on its own to address the basic problem of inferring causes from evidence
+
+## The problem with inference
+
+In the book the author makes a distinction between hypothesis and models. There is great difficulty sometimes to connect a vague scientific hypothesis with an underlying process and finally with a statistical model that is faithful to the process and the hypothesis.        
+
+We want: $\text{cause} \rightarrow \text{effect}$, but we get $x$ associated with  $y$.
+
+![Hypothesis](./figs/HPM.png)
+
