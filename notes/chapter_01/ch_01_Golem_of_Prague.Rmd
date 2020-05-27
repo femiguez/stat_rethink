@@ -31,6 +31,7 @@ In the book the author makes a distinction between hypothesis and models. There 
 We want: $\text{cause} \rightarrow \text{effect}$, but we get $x$ associated with  $y$.
 
 ![Hypothesis](./figs/HPM.png)
+
 ## The exponential family and maximum entropy
 
 More in-depth treatment in later chapters. For now recognize that there are properties of these distributions which make them good at describing the variability in natural phenomena.
