@@ -1,0 +1,92 @@
+---
+title: "Small Worlds and Large Worlds"
+author: "Gina Nichols"
+date: "5/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+here.pth <- here()
+knitr::opts_chunk$set(echo = TRUE, root.dir = here.pth)
+```
+
+These are Gina's notes and exercises from chapter 2 for the book "Statistical Rethinking" by Richard McElreath
+
+# Chapter 2.6: Practice
+
+**Easy, quote un-quote**
+
+2E1. (2)
+
+2E2. (3)
+
+2E3. (1)
+
+2E4. If you toss the globe once, I am not certain what your finger will land on. But, given the knowledge I do have, more often than not your finger will land on water. 
+
+
+**Medium**
+
+2M1. 
+
+Redo the example in the book first. 
+
+Define the 'grid', which is actually just a vector in this case. 
+It is all the values of the parameter *p* we wish to evaluate the plausibility of our data for.
+```{r}
+# define grid
+grid_dat <- tibble::tibble(p_grid = seq( from = 0, to = 1, length.out = 20))
+grid_dat
+```
+Next:
+
+- Define the prior belief for our data *I'm not sure why this is a uniform value of 1 and not 0.5*
+- Find the likelihood of our data for an assumed probability value
+- Update the prior by multiplying it by the liklihood
+- Standardize the curve
+
+```{r}
+grid_dat %>% 
+  mutate(prior = rep( 1, 20 ),  # I'm not sure why it isn't 0.5
+         likelihood = dbinom( 6, size = 9, prob = p_grid), # find likelihood for our data at a p
+         unstd.post = likelihood * prior,
+         std.post = unstd.post/sum(unstd.post)) %>% 
+  ggplot(aes(p_grid, std.post)) + 
+  geom_point() + 
+  geom_line()
+```
+
+Repeat the example for 3 different datasets:
+
+(1) W, W, W (3, 3)
+(2) W W W L (3, 4)
+(3) L W W L W W W (5, 7)
+
+```{r}
+
+grid_dat %>% 
+  mutate(prior = rep( 1, 20 ),
+         #--first data set
+         likelihood1 = dbinom( 3, size = 3, prob = p_grid), 
+         unstd.post1 = likelihood1 * prior,
+         posterior1 = unstd.post1/sum(unstd.post1),
+         #--second data set
+         likelihood2 = dbinom( 3, size = 4, prob = p_grid), 
+         unstd.post2 = likelihood2 * prior,
+         posterior2 = unstd.post2/sum(unstd.post2),
+         #--third data set
+         likelihood3 = dbinom( 5, size = 7, prob = p_grid), 
+         unstd.post3 = likelihood3 * prior,
+         posterior3 = unstd.post3/sum(unstd.post3)) %>%
+  select(p_grid, contains("posterior")) %>% 
+  pivot_longer(posterior1:posterior3) %>% 
+  ggplot(aes(p_grid, value, color = name, group = name)) + 
+  geom_point() + 
+  geom_line()
+
+```
+
