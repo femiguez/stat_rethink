@@ -20,18 +20,22 @@ These are Gina's notes and exercises from chapter 2 for the book "Statistical Re
 
 **Easy, quote un-quote**
 
-2E1. (2)
+##2E1. 
+(2)
 
-2E2. (3)
+##2E2. 
+(3)
 
-2E3. (1)
+##2E3. 
+(1)
 
-2E4. If you toss the globe once, I am not certain what your finger will land on. But, given the knowledge I do have, more often than not your finger will land on water. 
+##2E4.
+If you toss the globe once, I am not certain what your finger will land on. But, given the knowledge I do have, more often than not your finger will land on water. 
 
 
 **Medium**
 
-2M1. 
+##2M1. 
 
 Redo the example in the book first. 
 
@@ -75,18 +79,62 @@ grid_dat %>%
          unstd.post1 = likelihood1 * prior,
          posterior1 = unstd.post1/sum(unstd.post1),
          #--second data set
-         likelihood2 = dbinom( 3, size = 4, prob = p_grid), 
+         likelihood2 = dbinom( 3, size = 4, prob = p_grid ), 
          unstd.post2 = likelihood2 * prior,
          posterior2 = unstd.post2/sum(unstd.post2),
          #--third data set
-         likelihood3 = dbinom( 5, size = 7, prob = p_grid), 
+         likelihood3 = dbinom( 5, size = 7, prob = p_grid ), 
          unstd.post3 = likelihood3 * prior,
          posterior3 = unstd.post3/sum(unstd.post3)) %>%
   select(p_grid, contains("posterior")) %>% 
   pivot_longer(posterior1:posterior3) %>% 
   ggplot(aes(p_grid, value, color = name, group = name)) + 
   geom_point() + 
-  geom_line()
+  geom_line() + 
+  labs(title = "1 = 100% W\n 2 = 75% W\n 3 = 70% W")
 
+```
+
+
+##2M2. Assume step-wise prior
+
+```{r}
+
+grid_dat %>% 
+  mutate(prior = c(rep( 0, 10 ), rep( 0.5, 10)),
+         #--first data set
+         likelihood1 = dbinom( 3, size = 3, prob = p_grid), 
+         unstd.post1 = likelihood1 * prior,
+         posterior1 = unstd.post1/sum(unstd.post1),
+         #--second data set
+         likelihood2 = dbinom( 3, size = 4, prob = p_grid ), 
+         unstd.post2 = likelihood2 * prior,
+         posterior2 = unstd.post2/sum(unstd.post2),
+         #--third data set
+         likelihood3 = dbinom( 5, size = 7, prob = p_grid ), 
+         unstd.post3 = likelihood3 * prior,
+         posterior3 = unstd.post3/sum(unstd.post3)) %>%
+  select(p_grid, contains("posterior")) %>% 
+  pivot_longer(posterior1:posterior3) %>% 
+  ggplot(aes(p_grid, value, color = name, group = name)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(title = "1 = 100% W\n 2 = 75% W\n 3 = 70% W")
+
+
+```
+
+##2M3. Oh boy. 
+
+What is the probability the ball tossed was earth, given the finger landed on land?
+```{r}
+
+prob_earth <- 0.5
+prob_land_given_earth <- 0.3
+prob_land <- 130/200
+
+prob_earth_given_land <- prob_land_given_earth * prob_earth / prob_land
+
+prob_earth_given_land
 ```
 
