@@ -1,0 +1,225 @@
+---
+title: "Small Worlds and Large Worlds"
+author: "Gina Nichols"
+date: "5/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+here.pth <- here()
+knitr::opts_chunk$set(echo = TRUE, root.dir = here.pth)
+```
+
+These are Gina's exercises from chapter 2 for the book "Statistical Rethinking" by Richard McElreath
+
+# Easy, quote un-quote
+
+### 2E1. The probability of rain on Monday?
+(2) Pr(rain|Monday)
+
+### 2E2. Pr(Monday|rain)
+(3) prob it is monday given that it is raining
+
+### 2E3. prob it is monday, given it is raining
+(1) Pr(Monday|rain)
+
+### 2E4.
+If you toss the globe once, I am not certain what your finger will land on. But, given the knowledge I do have, more often than not your finger will land on water. 
+
+
+# Medium
+
+### 2M1. 
+
+Redo the example in the book first. 
+
+Define the 'grid', which is actually just a vector in this case. 
+It is all the values of the parameter *p*, the *proportion of water*, we wish to evaluate the plausibility of our data for.
+```{r}
+# define grid
+grid_dat <- tibble::tibble(p_grid = seq( from = 0, to = 1, length.out = 20))
+grid_dat
+```
+Next:
+
+- Define the prior belief for our data
+- Find the likelihood of our data for an assumed probability value (from the grid)
+- Update the prior by multiplying it by the liklihood
+- Standardize the curve
+
+```{r}
+grid_dat %>% 
+  mutate(prior = rep( 0.5, 20 ),  # The actual number doesn't matter, everything gets standardized
+         likelihood = dbinom( 6, size = 9, prob = p_grid), # find likelihood for our data at a proportion of water
+         unstd.post = likelihood * prior,
+         std.post = unstd.post/sum(unstd.post)) %>% 
+  ggplot(aes(p_grid, std.post)) + 
+  geom_point() + 
+  geom_line()
+```
+
+Repeat the example for 3 different datasets:
+
+(1) W, W, W (3, 3)
+(2) W W W L (3, 4)
+(3) L W W L W W W (5, 7)
+
+```{r}
+
+grid_dat %>% 
+  mutate(prior = rep( 1, 20 ),
+         #--first data set
+         likelihood1 = dbinom( 3, size = 3, prob = p_grid), 
+         unstd.post1 = likelihood1 * prior,
+         posterior1 = unstd.post1/sum(unstd.post1),
+         #--second data set
+         likelihood2 = dbinom( 3, size = 4, prob = p_grid ), 
+         unstd.post2 = likelihood2 * prior,
+         posterior2 = unstd.post2/sum(unstd.post2),
+         #--third data set
+         likelihood3 = dbinom( 5, size = 7, prob = p_grid ), 
+         unstd.post3 = likelihood3 * prior,
+         posterior3 = unstd.post3/sum(unstd.post3)) %>%
+  select(p_grid, contains("posterior")) %>% 
+  pivot_longer(posterior1:posterior3) %>% 
+  ggplot(aes(p_grid, value, color = name, group = name)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(title = "1 = 100% W\n 2 = 75% W\n 3 = 70% W")
+
+```
+
+
+### 2M2. Assume step-wise prior
+
+```{r}
+
+grid_dat %>% 
+  mutate(prior = c(rep( 0, 10 ), rep( 0.5, 10)),
+         #--first data set
+         likelihood1 = dbinom( 3, size = 3, prob = p_grid), 
+         unstd.post1 = likelihood1 * prior,
+         posterior1 = unstd.post1/sum(unstd.post1),
+         #--second data set
+         likelihood2 = dbinom( 3, size = 4, prob = p_grid ), 
+         unstd.post2 = likelihood2 * prior,
+         posterior2 = unstd.post2/sum(unstd.post2),
+         #--third data set
+         likelihood3 = dbinom( 5, size = 7, prob = p_grid ), 
+         unstd.post3 = likelihood3 * prior,
+         posterior3 = unstd.post3/sum(unstd.post3)) %>%
+  select(p_grid, contains("posterior")) %>% 
+  pivot_longer(posterior1:posterior3) %>% 
+  ggplot(aes(p_grid, value, color = name, group = name)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(title = "1 = 100% W\n 2 = 75% W\n 3 = 70% W")
+
+
+```
+
+### 2M3. Earth ball (70% water) and mars ball (0% water). 
+
+What is the probability the ball tossed was earth, given the finger landed on land?
+```{r}
+
+prob_earth <- 0.5
+prob_land_given_earth <- 0.3
+prob_land <- 130/200
+
+prob_earth_given_land <- prob_land_given_earth * prob_earth / prob_land
+
+prob_earth_given_land
+```
+
+### 2M4. Use the counting method to determine the prob the other side of the card is black
+
+Build the count table like the marble example. Not sure on notation (prob/plaus?) 
+```{r}
+
+tribble(
+~ conj,  ~ ways_to_get_B, ~plaus_B,  ~prob_B_when_flipped, 
+"W/W",       0,             "0",              0,
+"W/B",       1,             "1/3",            0,
+"B/B",       2,              "2/3",           1,
+)
+```
+
+Multiply plaus by prob_B_when_flipped and sum: 2/3
+
+### 2M5. What if we add another B/B card to the bag?
+
+```{r}
+
+tribble(
+~ conj,  ~ ways_to_get_B, ~plaus_B,  ~prob_B_when_flipped,  ~ plausBxprobB, 
+"W/W",       0,             "0",              0,                  "0",
+"W/B",       1,             "1/5",            0,                  "0",
+"B/B",       2,              "2/5",           1,                 "2/5",
+"B/B",       2,              "2/5",           1,                  "2/5"
+)
+```
+Sum of *plausBxprobB* column: 0.8 (4/5)
+
+### 2M6. What if black ink is heavier?
+```{r}
+
+tribble(
+~ conj, ~bag_wgt, ~ ways_to_get_B_count,  ~new_count,  ~plaus_B,   ~prob_B_flip,   ~plauBxprobB,
+"W/W",       3,        0,                   0,            "-",          0,        "0",
+"W/B",       2,        1,                   2,            "2/4",        0,        "0",
+"B/B",       1,        2,                   2,            "2/4",        1,        "2/4",
+)
+```
+
+### 2M7. New information, white face
+```{r}
+
+tribble(
+~ conjectured_first_card, ~ ways_to_get_B_then_white_count,  ~plaus,  ~prob_B_flip,    ~plauBxprobB,
+     "W/W",                              0,                   "0",            0,              "0",
+     "W/B",                              2,                   "2/8",         0,             "0",
+     "B/B",                              6,                   "6/8",        1,             "6/8"    
+)
+```
+
+`r 6/8`
+
+
+# Hard
+
+#### 2H1. What is the probability next set is twins?
+Try count method.
+```{r}
+
+tribble(
+~ conjectured_species, ~ ways_to_get_twins,  ~plaus_twins,  ~prob_twins_again,    ~plauxprob,
+     "A",                         10,             "1/3",            0.1,              "1/30",
+     "B",                         20,             "2/3",            0.2,              "2/30"
+)
+```
+So total probability of having twins again is 3/30, or `r 3/30`. 
+
+### 2H2. What is probability she is species A, given our data?
+
+$prob(A|data) = \frac{prob(data|A)prob(A)}{prob(data)}$
+
+$prob(A) = 0.5$ This one should probably be a distribution? 
+
+$prob(data) = 0.1 + 0.2$ Total probability of twins
+
+$prob(data|A) = 0.1$ Assume she is A, this is how likely our data (seeing twins) is
+
+So $prob(A|data) = \frac{0.1 * 0.5}{0.3}$. `r 0.1*0.5/0.3*100`% probability it's species A.
+
+
+
+### 2H3. Say mama panda has another pregnancy, this time it's a single infant. Find posterior prob she is species A.
+
+I need help. 
+
+
