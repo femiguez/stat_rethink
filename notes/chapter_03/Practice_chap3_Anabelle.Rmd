@@ -1,0 +1,180 @@
+---
+title: "Statistical Rethinking Chapter 3 Exercises"
+author: "Anabelle Laurent"
+date: "6/6/2020"
+output:  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+devtools::install_github("hadley/emo")
+library(emo)
+```
+
+## Practice
+
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( 6 , size=9 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+plot(samples)
+dens(samples)
+```
+
+
+## E.1
+```{r}
+# 3E1 add up posterior probability where p<0.2
+sum(samples<0.2)/1e4
+```
+
+## E.2
+```{r}
+sum( samples > 0.8) / 1e4
+```
+
+## E.3
+```{r}
+sum( samples > 0.2 & samples < 0.8 ) / 1e4
+```
+
+## E.4
+```{r}
+quantile(samples,0.2)
+```
+
+## E.5
+```{r}
+quantile(samples,0.8)
+```
+
+## E.6
+```{r}
+HPDI(samples,prob=0.66)
+```
+
+## E.7
+```{r}
+PI(samples, prob=0.66)
+```
+
+## M.1
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( 8 , size=15 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+plot(p_grid,posterior)
+```
+
+## M.2
+```{r}
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+HPDI(samples,prob=0.90)
+```
+
+## M.3
+We use samples from the posterior distribution used in 3.M2  
+The object w can be manipulated just like samples from the distribution 
+
+```{r}
+w <- rbinom( 1e5 , size=15 , prob=samples )
+simplehist( w , xlab="water count" )
+
+```
+
+What is the proba of observing 8 water in 15 tosses?
+```{r}
+sum( w==8) / length(w)
+```
+
+## M.4
+```{r}
+w <- rbinom( 1e5 , size=6 , prob=samples )
+simplehist( w , xlab="water count" )
+sum( w==6) / length(w)
+```
+
+## M.5 
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- c(rep( 0 , 500 ),rep( 1 , 500 ))
+likelihood <- dbinom( 8 , size=15 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+plot(p_grid,posterior,type="l")
+```
+
+## M.6
+
+## Hard problems `r emo::ji("deadpan")`
+
+```{r}
+birth1 <- c(1,0,0,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,0,0,1,0,0,0,1,0,
+            0,0,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,
+            1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,1,1,1,0,0,1,0,1,1,0,
+            1,0,1,1,1,0,1,1,1,1)
+birth2 <- c(0,1,0,1,0,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,0,0,1,1,1,0,
+            1,1,1,0,1,1,1,0,1,0,0,1,1,1,1,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,
+            1,1,1,0,1,1,0,1,1,0,1,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0,0,1,0,0,1,1,
+            0,0,0,1,1,1,0,0,0,0)
+
+data(homeworkch3)
+# total number of boys across all of these births
+sum(birth1)+sum(birth2)
+```
+
+1 means `r emo::ji("baby")` boy  
+2 means `r emo::ji("baby")` girl  
+
+Total number of boys across all of these births  
+```{r}
+sum(birth1)+sum(birth2)
+```
+ 
+## H.1
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( 111 , size=200 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+plot(p_grid,posterior)
+```
+
+## H.2
+```{r}
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+HPDI(samples,prob=c(0.5,0.89,0.97))
+```
+
+## H.3
+```{r}
+w <- rbinom( 1e4 , size=200 , prob=samples )
+dens(w) 
+abline(v=111)
+```
+
+## H.4
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( sum(birth1) , size=100 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+plot(p_grid,posterior)
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+w <- rbinom( 1e4 , size=100 , prob=samples )
+dens(w) 
+abline(v=sum(birth1))
+```
+
