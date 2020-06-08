@@ -139,4 +139,4 @@ Propagating these two uncertainties results in a **posterior predictive distribu
 
 ## Further reading 
 
-
+* Error bars: Martin Krzywinski and Naomi Altman. Nature Methods. VOL.10 NO.10 OCTOBER 2013. (https://github.com/femiguez/stat_rethink/notes/chapter_03/further_reading/NatureMethods-errorBars.pdf)
