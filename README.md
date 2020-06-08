@@ -7,4 +7,4 @@ Notes
 
 [Chapter 2: Small Worlds and Large Worlds](https://femiguez.github.io/stat_rethink/notes/chapter_02/ch_02_Small_Worlds_and_Large_Worlds.html)
 
-[Chapter 2: Qs and Ans by Gina](https://femiguez.github.io/stat_rethink/notes/chapter_02/ch_02_Qs-gina.html)
+[Chapter 2: Qs and As by Gina](https://femiguez.github.io/stat_rethink/notes/chapter_02/ch_02_Qs-gina.html)
