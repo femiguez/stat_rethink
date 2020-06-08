@@ -12,3 +12,5 @@ Notes
 [Chapter 3: Sampling the Imaginary](https://femiguez.github.io/stat_rethink/notes/chapter_03/ch_03_Sampling_the_Imaginary.html)
 
 [Chapter 3: Qs and As by Gina](https://femiguez.github.io/stat_rethink/notes/chapter_03/ch_03_Qs-gina.html)
+
+[Chapter 3: Practice by Anabelle](https://femiguez.github.io/stat_rethink/notes/chapter_03/Practice_chap3_Anabelle.html)
