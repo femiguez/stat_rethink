@@ -1,0 +1,109 @@
+---
+title: "Sampling to Summarise"
+author: "Gina Nichols"
+date: "6/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+here.pth <- here()
+knitr::opts_chunk$set(echo = TRUE, root.dir = here.pth)
+```
+
+Set-up
+
+Setting up our globe example:
+```{r}
+p_grid <- seq( from = 0, to = 1, length.out = 1000 )
+prior <- rep(1, 1000) #--uninformative prior
+likelihood <- dbinom( 6, size = 9, prob = p_grid) #--creates a vector of values 
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior) #--standardize it
+set.seed(100)
+samples <- sample(p_grid, size = 1E4, replace = T, prob = posterior)
+plot(samples)
+```
+
+Use the *rethinking* library
+```{r}
+library(rethinking)
+```
+
+## Easy
+
+### 3E1. How much posterior prob lies below p = 0.2?
+
+```{r}
+sum (samples < 0.2 ) / 1E4
+```
+### 3E2. How much lies above p = 0.8?
+```{r}
+sum (samples > 0.8) / 1E4
+```
+
+### 3E3. How much lies between 0.2 and 0.8?
+```{r}
+
+sum (samples < 0.8 & samples > 0.2 ) / 1E4
+```
+
+### 3E4. 20% of the prob lies below what value of p?
+```{r}
+quantile(samples, 0.2)
+```
+### 3E5. 20% lies above what value of p?
+NOTE: Same as asking: 80% of prob lies below what value of p
+```{r}
+quantile(samples, 0.8)
+ 
+```
+
+### 3E6. Which values of p contain the narrowest interval equal to 66% of the posterior probability? *use the HPDI function from rethinking package*
+
+```{r}
+HPDI( samples, prob = 0.66)
+```
+
+## Medium
+
+### 3M1. What if it were 8 in 15 tosses were water?
+
+```{r}
+p_grid <- seq( from = 0, to = 1, length.out = 1000 )
+prior <- rep(1, 1000) #--uninformative prior
+likelihood <- dbinom( 8, size = 15, prob = p_grid) #--creates a vector of values 
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior) #--standardize it
+
+```
+
+### 3M2. Draw 10,000 samples. Use the samples to find the 90% HPDI for proportion water. 
+
+```{r}
+set.seed(100)
+samples <- sample(p_grid, size = 1E4, replace = T, prob = posterior)
+
+myplot <- 
+  tibble(samples = samples) %>% 
+  mutate(index = 1:n()) %>% 
+ggplot(aes(index, samples)) + 
+  geom_hex() + 
+  scale_fill_viridis_c()
+
+myplot
+```
+
+
+```{r}
+HPDI(samples, 0.9)
+
+myplot + 
+  geom_hline(yintercept = 0.3) + 
+  geom_hline(yintercept = 0.72)
+```
+
+### 3M3. Construct a posterior predictive check for this model and data. 
