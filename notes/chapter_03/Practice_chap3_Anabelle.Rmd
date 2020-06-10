@@ -178,3 +178,22 @@ dens(w)
 abline(v=sum(birth1))
 ```
 
+## H.5 (not sure about this one)
+
+First count the number of first borns who were girls
+```{r}
+girl_birth1<-100-sum(birth1)
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+likelihood <- dbinom( girl_birth1 , size=100 , prob=p_grid )
+posterior <- likelihood * prior
+posterior <- posterior / sum(posterior)
+plot(p_grid,posterior)
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+w <- rbinom( 1e4 , size=100 , prob=samples )
+dens(w) 
+abline(v=sum(birth1))
+```
+
+
