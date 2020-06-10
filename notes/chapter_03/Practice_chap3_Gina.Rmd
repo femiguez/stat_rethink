@@ -68,6 +68,13 @@ quantile(samples, 0.8)
 HPDI( samples, prob = 0.66)
 ```
 
+### 3E7. Just find where 66% of the stuff lies *use PI from rethinking*
+```{r}
+PI(samples, prob = 0.66)
+```
+
+It's the same. 
+
 ## Medium
 
 ### 3M1. What if it were 8 in 15 tosses were water?
@@ -107,3 +114,20 @@ myplot +
 ```
 
 ### 3M3. Construct a posterior predictive check for this model and data. 
+```{r}
+w <- rbinom ( 1e4, size = 15, prob = samples)
+hist(w)
+
+sum (w == 8) / 1E4
+
+posterior2 <- w / 1E4
+
+```
+
+### 3M4. 
+
+```{r}
+samples2 <- sample(p_grid, size = 1E4, replace = T, prob = posterior2)
+
+```
+
