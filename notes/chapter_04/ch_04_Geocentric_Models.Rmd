@@ -1,0 +1,145 @@
+---
+title: "Geocentric Models"
+author: "Fernando Miguez"
+date: "6/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(nlraa)
+library(ggplot2)
+```
+
+# Geocentric models
+
+> All models are wrong but some are useful - George Cox
+
+## Why normal distributions are normal
+
+* Normal by addition
+
+The normal (or Gaussian) can emerge as a natural process in which small amounts of effects or deviations are produced. He doesn't formally introduce the Central Limit Theorem, but this Theorem states that some statistics, like the mean, will have a normal distribution regardless of the underlying distribution. The normality improves as the sample size increases.
+
+```{r, echo = FALSE, eval = FALSE}
+pos <- replicate(1000, sum(runif(16, -1, 1)))
+plot(density(pos))
+```
+
+Normality also arises from multiplying small numbers or from log-multiplying larger ones. Also, using the normal reflects a state of ignorance. If we really don't know much about the data we are interested in, assuming normality is assuming ignorance.
+
+**Exponential Family**: normal, Poisson, binomial, Gamma and others.
+
+## A language for describing models
+
+$$
+\begin{array}{l}
+y_i \sim Normal(\mu_i, \sigma) \\
+\mu_i = \beta x_i \\
+\beta \sim Normal(0, 10) \\
+\sigma \sim Exponential(0,1) \\
+x_i \sim Normal(0, 1)
+\end{array}
+$$
+
+
+## Linear Regression (Prediction)
+
+A simple linear model of height as a function of weight
+
+$$
+\begin{array}{l}
+h_i \sim Normal(\mu_i, \sigma) \\
+\mu_i = \alpha + \beta (x_i - \bar{x}) \\
+\alpha \sim Normal(178, 20) \\
+\beta \sim Normal(0, 10) \\
+\sigma \sim Uniform(0,50) \\
+\end{array}
+$$
+### Some concepts
+
+* Thinking hard about setting up priors. He provides an example of constraining the slope to be positive in this case.
+
+* In reality it would be great if we all simulated data from prior distributions before we performed experiments. Maybe someday...
+
+* Hacking $p$-values: It is true that some absurd arguments are often made in the name of $p$-values. It is possible to hack Bayesian analyses too. We just need to be aware of the choices we make and the assumptions of the models.
+
+# Appendix
+
+Using package nlraa, ggplot2 and bootstrap to generate similar graphs
+
+```{r}
+data(Howell1)
+d2 <- subset(Howell1, age > 18)
+fit.lm2 <- lm(height ~ weight, data = d2)
+
+## Note: predict.lm can also produce these quantities
+## It does not generate samples though, it uses the assumption
+## of normality and it derives equations
+
+## Simulation for the mean
+fit.lm2.simd <- simulate_lm(fit.lm2, nsim = 1e2, value = "data.frame")
+## Simulation for an observation
+fit.lm2.simd2 <- simulate_lm(fit.lm2, psim = 2, nsim = 1e3, value = "data.frame")
+
+upr <- aggregate(sim.y ~ weight, FUN = function(x) quantile(x, probs = 0.95),
+                       data = fit.lm2.simd2)
+names(upr) <- c("weight","upr")
+lwr <- aggregate(sim.y ~ weight, FUN = function(x) quantile(x, probs = 0.05),
+                       data = fit.lm2.simd2)
+names(lwr) <- c("weight","lwr")
+bands <- merge(upr, lwr)
+
+ggplot() + 
+  geom_line(data = fit.lm2.simd,
+            aes(x = weight, y = sim.y, group = ii),
+            color = "red", alpha = 0.5) + 
+  geom_ribbon(data = bands, aes(x = weight, ymin = lwr, ymax = upr), 
+              fill = "purple", alpha = 0.3) + 
+  geom_abline(intercept = coef(fit.lm2)[1], slope = coef(fit.lm2)[2], 
+              color = "blue") + 
+  geom_point(data = d2, aes(x = weight, y = height)) + 
+  xlab("Weight (kg)") + ylab("Height (cm)") + 
+  ggtitle("Height vs. weight, fitted (blue), mean band (red) \n and prediction band (purple)")
+```
+
+## Even worse: nonlinear regression
+
+```{r, echo = TRUE}
+### One possible equation is the Hill3
+fit1 <- nls(height ~ SShill3(weight, Ka, n, a), data = Howell1)
+## Weibull
+fit2 <- nls(height ~ SSweibull(weight, Asym, D, lrc, k), data = Howell1)
+## Gompertz
+fit3 <- nls(height ~ SSgompertz(weight, Asym, b, c), data = Howell1)
+## Bilinear
+fit4 <- nls(height ~ SSblin(weight, a, b, c, d), data = Howell1)
+```
+
+```{r, echo = FALSE}
+## Nonlinear fit to all of the data
+ggplot(data = Howell1, aes(x = weight, y = height)) + geom_point()
+
+## Visualize
+ggplot(data = Howell1, aes(x = weight, y = height)) + 
+  geom_point() + geom_line(aes(y = fitted(fit1)), color = "red") + 
+  ggtitle("Hill3 equation")
+
+## Visualize
+ggplot(data = Howell1, aes(x = weight, y = height)) + 
+  geom_point() + geom_line(aes(y = fitted(fit2)), color = "red") + 
+  ggtitle("Weibull equation")
+
+## Visualize
+ggplot(data = Howell1, aes(x = weight, y = height)) + 
+  geom_point() + geom_line(aes(y = fitted(fit3)), color = "red") + 
+  ggtitle("Gompertz equation")
+
+## Visualize
+ggplot(data = Howell1, aes(x = weight, y = height)) + 
+  geom_point() + geom_line(aes(y = fitted(fit4)), color = "red") + 
+  ggtitle("Bi-linear equation")
+```
+
+
