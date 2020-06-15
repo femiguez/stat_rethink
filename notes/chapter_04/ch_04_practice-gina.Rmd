@@ -12,7 +12,7 @@ library(rethinking)
 #library(brms)
 ```
 
-### E1
+##E1
 Which of these is the likelihood?
 $$
 \begin{array}{l}
@@ -24,13 +24,15 @@ $$
 
 $y_i \sim Normal(\mu, \sigma)$ is the likelihood.
 
-### E2
+##E2
 There are 2 parameters in the posterior distribution, $\mu$ and $\sigma$.
 
-### E3. 
+##E3. 
 Write that model using Bayes' theorem. 
 
-### E4. 
+Ugh. Not that good in Latex.
+
+##E4. 
 Which of these is the linear model?
 $$
 \begin{array}{l}
@@ -44,11 +46,11 @@ $$
 
 $\mu_i = \alpha + \beta (x_i - \bar{x})$ is our linear model. Although I think there is a typo in the book in the likelihood. 
 
-### E5. 
+##E5 
 How many parameters are in that posterior distribution?
 Three - $\alpha$, $\beta$, and $\sigma$. 
 
-### M1
+##M1
 Simulate observed y values from the prior for the model below:
 
 $$
@@ -91,10 +93,120 @@ Write a mathematical model for this. Defend it!
 $$
 \begin{array}{l}
 h_i \sim Normal(\mu_i, \sigma) \\
-\mu_i = \alpha + \beta (x_i - \bar{x}) \\
+\mu_i = \alpha + \beta (year_i - \bar{year}) \\
 \alpha \sim Normal(0, 10) \\
-\beta \sim Normal(0, 1) \\
-\sigma \sim Exponential(2) \\
+\beta \sim LogNormal(0, 1) \\
+\sigma \sim Exponential(1) \\
 \end{array}
 $$
+
+###M5
+No because I already forced the $\beta$ to be positive by using that LogNormal thing. 
+
+###M6
+Well if the variance is never over 64cm, then it seems I shouldn't have chosen the exponential distribution for the $\sigma$. I suppose I'd update it to:
+
+$\sigma \sim Uniform(0, 8)$
+
+##M7
+Fit m4.3 again. 
+
+```{r}
+data(Howell1)
+d2 <-  
+  Howell1 %>% 
+  filter(age >= 18)
+
+xbar <- mean(d2$height)
+
+m4.3 <- 
+  quap(
+    alist(
+      height ~ dnorm(mu, sigma),
+      mu <- a + b*(weight - xbar),
+      a ~ dnorm(178, 20),
+      b <- dlnorm(0, 1),
+      sigma ~ dunif(0, 50)
+    ),
+    data = d2)
+
+precis(m4.3)
+```
+
+Hmmm. I'm not getting the same answer they got. What is wrong?
+
+
+Pretend it's fine, I guess. 
+```{r}
+
+post <- extract.samples(m4.3) #--get our posterior samples of a, b, and sigma
+
+p4.3 <- 
+  d2 %>% 
+  mutate(a = mean(post$a),
+         b = mean(post$b),
+         height_pred = a + b * (weight - xbar)) %>% 
+  ggplot(aes(weight, height)) + 
+  geom_point() +
+  geom_line(aes(weight, height_pred), color = "green4")
+
+p4.3
+```
+
+Fit it without the centering
+
+```{r}
+m4.3alt <- 
+  quap(
+    alist(
+      height ~ dnorm(mu, sigma),
+      mu <- a + b*(weight),
+      a ~ dnorm(178, 20),
+      b <- dlnorm(0, 1),
+      sigma ~ dunif(0, 50)
+    ),
+    data = d2)
+
+post <- extract.samples(m4.3alt) #--get our posterior samples of a, b, and sigma
+
+p4.3alt <- 
+  d2 %>% 
+  mutate(a = mean(post$a),
+         b = mean(post$b),
+         height_pred = a + b * (weight)) %>% 
+  ggplot(aes(weight, height)) + 
+  geom_point() +
+  geom_line(aes(weight, height_pred), color = "red")
+
+p4.3alt
+```
+
+```{r}
+library(patchwork)
+p4.3 + p4.3alt
+```
+
+It looks identical to me. Look at the covariance, they say.
+
+The 'centered' model:
+```{r}
+precis(m4.3)
+```
+
+The un-centered one:
+```{r}
+precis(m4.3alt)
+```
+
+Centered:
+```{r}
+cov2cor(vcov(m4.3))
+```
+
+The 'un-centered' model:
+```{r}
+cov2cor(vcov(m4.3alt))
+```
+
+
 
