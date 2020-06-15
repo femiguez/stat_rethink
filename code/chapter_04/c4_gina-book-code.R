@@ -266,3 +266,4 @@ shade(mu.PI, weight.seq)
 
 # Hallelujah, someone did this for me
 #https://bookdown.org/ajkurz/Statistical_Rethinking_recoded/linear-models.html#a-gaussian-model-of-height
+
