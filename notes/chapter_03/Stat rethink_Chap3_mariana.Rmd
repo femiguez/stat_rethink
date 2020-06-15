@@ -1,0 +1,233 @@
+---
+title: "Stat-rethink Chapter 3"
+author: "Mariana CHiozza"
+date: "6/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Sampling the Imaginary
+
+## 3.1 Sampling from a grid-approxiate posterior
+
+Grid approximation 
+
+1) Define the grid. How many data points to use. List of the parameter values.
+```{r}
+p_grid= seq(from=0, to=1, length.out = 1000)
+```
+
+2) Define the prior at each parameter value
+
+```{r}
+prob_p=rep(1,1000)
+```
+
+3) Compute likelihood at each value in grid
+```{r}
+prob_data=dbinom(6, size = 9, prob = p_grid) #six waters in 9 tosses
+```
+
+4) Compute the product (likelihood*prior)
+```{r}
+posterior=prob_data*prob_p
+```
+
+5) Standarize the posterior
+```{r}
+posterior=posterior/sum(posterior)
+plot(p_grid, posterior, main="Ideal posterior",)
+```
+
+Sampling the posterior: Samples will have the same proportion as the posterior density.
+
+```{r}
+samples=sample(p_grid, prob = posterior, size=10000, replace = TRUE)
+plot(samples, col="purple")
+library(rethinking)
+dens(samples, main="Estimated density")
+```
+
+## 3.2 Sampling to summarize
+
+Interpreting the posterior: What is the probability (posterior) for a parameter to lies below some number, or between two values.
+
+Example: proportion of water is below 0.5.
+
+Add all probability values from the grid posterior less than 0.5
+
+```{r}
+sum(posterior[p_grid<0.5])
+```
+
+17% of the posterior probability is below 0.5.
+
+Finding the frecuency of the values below 0.5
+
+```{r}
+sum(samples<0.5) /10000
+```
+Intervals:
+
+- Confidence intervals
+- Compatibility interval (avoiding confidence and credibility). Is is a range of values compatible with the model and data. 
+- Percentile intervals (PI)
+- Highest posterior density interval
+
+
+Use samples from the posterior instead of grid approximation.
+Example: 80th percentile:
+
+```{r}
+quantile(samples, 0.8)
+quantile(samples, c(0.1, 0.9))
+
+```
+
+Percentile intervals (PI) and highest posterior density compatibility intervals (HPDI). For posterior distribution that are not symmetrical or highly skewed (three waters in three tosses) and a flat (uniform) prior.
+
+
+```{r}
+p_grid= seq(from=0, to=1, length.out = 1000)
+prior=rep(1,1000)
+likelihood=dbinom(3, size = 3, prob=p_grid)
+posterior=likelihood*prior
+posterior=posterior/sum(posterior)
+samples=sample(p_grid, size = 10000, replace=TRUE, prob = posterior)
+
+PI(samples,prob = 0.5)
+HPDI (samples, prob = 0.5)
+```
+
+
+Finally, summarizing the posterior probability: What unique value should we report from the entire posterior distribution?
+
+Note: Is is harmful to report a single value when using Bayesian parameter estimate, where each parameter value has assigned a plausibility value following a function.
+
+But....we can use the LOSS OF FUNCTION rule. It will tell you the cost associated with using any particular point estimate.
+
+Three point estimates: maximum a posteriori, mean and median.
+
+```{r}
+p_grid[which.max(posterior)]
+chainmode(samples, adj=0.01)
+
+mean(samples)
+median(samples)
+```
+
+Compute the the loss, assumption p=0.5. Compute the weighted average loss, where each loss is weighted by its posterior probability. 
+
+```{r}
+sum(posterior*abs(0.5-p_grid))
+
+# Doing that for every possible desicion:
+
+loss=sapply(p_grid, function(d) 
+  sum(posterior*abs(d - p_grid)))
+```
+
+Minimizying the loss (find the parameter value that minimize the loss)
+
+```{r}
+p_grid[which.min(loss)]
+```
+ The result is the posterior median.
+ 
+```{r}
+median(samples)
+```
+
+## 3.3 Sampling to simulate prediction
+
+Simulated data= Dummy Data
+Globe Tossing Model (binomial likelihood) with 2 tosses there are three posible outcomes (0 water, 1 water or 2 water). Calculate the probability of each outcome using p=0.7:
+
+```{r}
+dbinom(0:2, size = 2, prob = 0.7)
+```
+
+There is 9% chance of w=0, 42% chance that w=1 and 49% chance for w=2.
+
+Now, simulate using probabilities:
+
+Sample 1 observation from the distribution
+
+```{r}
+rbinom(1, size = 2, prob = 0.7) #r stands for random
+```
+
+Two water in two tosses.
+
+Sample 10,000 observations from the distribution
+
+```{r}
+dummy_w=rbinom (100000, size = 2, prob = 0.7)
+table(dummy_w)/100000
+
+```
+
+Executing the code multiple times will give slighlty different results.
+
+
+## Practice
+
+```{r}
+p_grid= seq(from=0, to=1, length.out = 1000)
+prior=rep(1,1000)
+likelihood=dbinom(6, size = 9, prob=p_grid)
+posterior=likelihood*prior
+posterior=posterior/sum(posterior)
+
+set.seed(100)
+samples=sample(p_grid, prob = posterior, size = 10000, replace = TRUE)
+```
+
+### E1 to E7
+
+```{r}
+#Using grid approximation
+sum(posterior[p_grid<0.2])
+sum(posterior[p_grid>0.8])
+sum(posterior[p_grid>0.2 & p_grid<0.8])
+
+#Sampling from the posterior distribution
+sum(samples<0.2)/10000
+sum(samples>0.8)/10000
+sum(samples>0.2 & samples<0.8)/10000
+
+quantile(samples, 0.2)
+quantile(samples, 0.8)
+
+HPDI (samples, prob = 0.66)
+PI (samples, prob = 0.66)
+```
+
+
+## M1 to M6
+
+```{r}
+p_grid= seq(from=0, to=1, length.out = 1000)
+prior=rep(1,1000)
+likelihood=dbinom(8, size = 15, prob=p_grid)
+posterior=likelihood*prior
+posterior=posterior/sum(posterior)
+
+set.seed(100)
+samples=sample(p_grid, prob = posterior, size = 10000, replace = TRUE)
+
+HPDI (samples, prob = 0.9)
+
+w=rbinom(10000, size = 15, prob = samples)
+sum(w==8)/10000
+
+
+w=rbinom(10000, size = 9, prob = samples)
+sum(w==6)/10000
+
+```
+
+
