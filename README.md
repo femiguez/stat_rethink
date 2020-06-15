@@ -14,3 +14,7 @@ Notes
 [Chapter 3: Qs and As by Gina](https://femiguez.github.io/stat_rethink/notes/chapter_03/ch_03_Qs-gina.html)
 
 [Chapter 3: Practice by Anabelle](https://femiguez.github.io/stat_rethink/notes/chapter_03/Practice_chap3_Anabelle.html)
+
+[Chapter 4: Geocentric Models](https://femiguez.github.io/stat_rethink/notes/chapter_04/ch_04_Geocentric_Models.html)
+
+
