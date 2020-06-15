@@ -267,8 +267,6 @@ shade(mu.PI, weight.seq)
 # Hallelujah, someone did this for me
 #https://bookdown.org/ajkurz/Statistical_Rethinking_recoded/linear-models.html#a-gaussian-model-of-height
 
-<<<<<<< Updated upstream
-=======
 # brms and rethinking share commands. Get the data, then detach rethinking
 library(tidyverse)
 rm(list = ls())
@@ -362,6 +360,3 @@ b4.1 <-
 
 
 # never mind. back to the book. -------------------------------------------
-
-
->>>>>>> Stashed changes
