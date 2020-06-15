@@ -1,0 +1,100 @@
+---
+title: "Geocentric Models, Practice"
+author: "Gina Nichols"
+date: "6/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rethinking)
+#library(brms)
+```
+
+### E1
+Which of these is the likelihood?
+$$
+\begin{array}{l}
+y_i \sim Normal(\mu, \sigma) \\
+\mu \sim Normal(0, 10) \\
+\sigma \sim Exponential(1) \\
+\end{array}
+$$
+
+$y_i \sim Normal(\mu, \sigma)$ is the likelihood.
+
+### E2
+There are 2 parameters in the posterior distribution, $\mu$ and $\sigma$.
+
+### E3. 
+Write that model using Bayes' theorem. 
+
+### E4. 
+Which of these is the linear model?
+$$
+\begin{array}{l}
+h_i \sim Normal(\mu_i, \sigma) \\
+\mu_i = \alpha + \beta (x_i - \bar{x}) \\
+\alpha \sim Normal(0, 10) \\
+\beta \sim Normal(0, 1) \\
+\sigma \sim Exponential(2) \\
+\end{array}
+$$
+
+$\mu_i = \alpha + \beta (x_i - \bar{x})$ is our linear model. Although I think there is a typo in the book in the likelihood. 
+
+### E5. 
+How many parameters are in that posterior distribution?
+Three - $\alpha$, $\beta$, and $\sigma$. 
+
+### M1
+Simulate observed y values from the prior for the model below:
+
+$$
+\begin{array}{l}
+y_i \sim Normal(\mu, \sigma) \\
+\mu \sim Normal(0, 10) \\
+\sigma \sim Exponential(1) \\
+\end{array}
+$$
+
+```{r}
+sample_mu <- rnorm (1e4, 0, 10)
+sample_sig <- rexp(1e4, 1)
+prior_h <- rnorm(1e4, sample_mu, sample_sig)
+dens(prior_h)
+```
+
+###M2
+
+Translate this into a quap formula.
+
+```{r}
+flist <- 
+  alist(
+    height ~ dnorm(mu, sigma),
+    mu ~ dnorm(0, 10),
+    sigma ~ dexp(1)
+  )
+```
+
+
+### M3
+
+This is the same as **E4**
+
+###M4
+You measure student heights over 3 years. I want a linear regression predicting height using year as a predictor. 
+Write a mathematical model for this. Defend it!
+
+$$
+\begin{array}{l}
+h_i \sim Normal(\mu_i, \sigma) \\
+\mu_i = \alpha + \beta (x_i - \bar{x}) \\
+\alpha \sim Normal(0, 10) \\
+\beta \sim Normal(0, 1) \\
+\sigma \sim Exponential(2) \\
+\end{array}
+$$
+

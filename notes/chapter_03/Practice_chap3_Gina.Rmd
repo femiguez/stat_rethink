@@ -1,0 +1,167 @@
+---
+title: "Sampling to Summarise"
+author: "Gina Nichols"
+date: "6/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+here.pth <- here()
+knitr::opts_chunk$set(echo = TRUE, root.dir = here.pth)
+```
+
+Set-up
+
+Setting up our globe example of 6 W in 9 tosses:
+```{r}
+p_grid <- seq( from = 0, to = 1, length.out = 1000 )
+prior <- rep(1, 1000) #--uninformative prior
+likelihood69 <- dbinom( 6, size = 9, prob = p_grid) #--creates a vector of values 
+posterior69 <- likelihood69 * prior
+posterior69 <- posterior69 / sum(posterior69) #--standardize it
+```
+
+Posteriors suck, so we will get 'samples' from it, and deal with those instead. I renamed it, bc 'samples' is confusing to me. 
+```{r}
+set.seed(100)
+#--now sample a value from p_grid, randomly, with weighting equal to posterior
+# I call it 'my proportions from a 6 W out of 9 toss experiment', or my_69props
+my_69props <- sample(p_grid, size = 1E4, replace = T, prob = posterior69)
+plot(my_69props)
+```
+
+That view of the data kind of sucks, so we use the *rethinking* library's *dens* function.
+```{r, message=F}
+library(rethinking)
+dens(my_69props, xlab = "Proportion of Water")
+```
+
+This looks basically identical to the histogram of the samples
+```{r}
+hist(my_69props)
+```
+A value between 0.6 and 0.7, or `r 6/9`, is the best 'bet' based on our data.
+
+## Easy
+
+### 3E1. What % of the my_69props dist lies below Wprop = 0.2?
+
+```{r}
+sum (my_69props < 0.2 ) / 1E4
+```
+Very little. 
+
+### 3E2. How much lies above p = 0.8?
+```{r}
+sum (my_69props > 0.8) / 1E4
+```
+Not a lot. 
+
+### 3E3. How much lies between 0.2 and 0.8?
+```{r}
+
+sum (my_69props < 0.8 & my_69props > 0.2 ) / 1E4
+```
+Most of it. So we can say the actual proportion of water is likely between 20 and 80%.
+
+### 3E4. 20% of the prob lies below what value of p?
+```{r}
+quantile(my_69props, 0.2)
+```
+
+### 3E5. 20% lies above what value of p?
+NOTE: Same as asking: 80% of prob lies below what value of p
+```{r}
+quantile(my_69props, 0.8)
+ 
+```
+
+### 3E6. Which values of p contain the narrowest interval equal to 66% of the posterior probability? *use the HPDI function from rethinking package*
+
+```{r}
+HPDI( my_69props, prob = 0.66)
+```
+
+### 3E7. Just find where 66% of the stuff lies *use PI from rethinking*
+```{r}
+PI(my_69props, prob = 0.66)
+```
+
+It's basically the same, but not quite, meaning it's not symmetrical. 
+
+## Medium
+
+### 3M1. What if it were 8 in 15 tosses were water?
+
+```{r}
+likelihood815 <- dbinom( 8, size = 15, prob = p_grid) #--creates a vector of values 
+posterior815 <- likelihood815 * prior
+posterior815 <- posterior815 / sum(posterior815) #--standardize it
+plot(p_grid, posterior815)
+
+```
+
+### 3M2. Draw 10,000 samples. Use the samples to find the 90% HPDI for proportion water. 
+
+```{r}
+set.seed(100)
+#--sample from the posterior distribution
+#--we can feed a distribution as the prob into the sample function
+#--we pick from the p_grid vector,
+#--the weights of our picks are defined by the posterior dist from above
+my_815props <- sample(p_grid, size = 1E4, replace = T, prob = posterior815)
+
+myplot <- 
+  tibble(samples = my_815props) %>% 
+  mutate(index = 1:n()) %>% 
+ggplot(aes(index, my_915props)) + 
+  geom_hex() + 
+  scale_fill_viridis_c()
+
+myplot
+```
+
+
+```{r}
+HPDI(my_815props, 0.9)
+```
+
+This time, it's more around 50%.
+
+### 3M3. Construct a posterior predictive check for this model and data. 
+```{r}
+w <- rbinom ( 1e4, size = 15, prob = my_815props)
+#--we use a simple histogram because they are counts
+simplehist(w)
+```
+
+How many times did we get 8 waters in our simulation?
+```{r}
+sum (w == 8) / 1E4
+```
+
+14% of the time. 
+
+### 3M4. What is prob of obs 6 water in 9 tosses, using the posterior from the 8/15 data?
+
+
+```{r}
+w2 <- rbinom ( 1e4, size = 9, prob = my_815props)
+
+simplehist( w2 )
+
+sum (w2 == 6) / 1e4
+```
+17% probability. 
+
+### 3M6. Anabelle didn't do it!
+
+Suppose you want to estimate the Earth's proportion of water very precisely. I want the 99% interval to be only 0.05 wide. How many times will we need to toss the globe?
+
+We need a relationship between the number of tosses and the size of the 99% CI. 
+
+Hmmm.....
