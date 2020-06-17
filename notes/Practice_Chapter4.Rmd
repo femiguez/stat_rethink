@@ -1,0 +1,71 @@
+---
+title: "chapter4"
+author: "Anabelle Laurent"
+date: "6/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### E.1 
+first line is the likelihood as it is the distribution assigned ton an observed variable (see p.33)  
+
+### E.2 
+two parameters, mu and sigma (unobservable things)    
+
+### E.3  
+I used the "overthinking" note page 78  
+Pr(mu,sigma|Yij) = N/D  
+N= Normal(Yij|mu,sigma) x Normal(0,10) x Uniform(0,10)  
+D= integral(Normal(Yij|mu,sigma)) x Normal(0,10) x Uniform(0,10)  
+
+### E.4  
+second line = linear model  
+
+### E.5  
+Three parameters alpha, beta and sigma
+
+### M.1
+```{r}
+mu<-rnorm(100,0,10)
+sigma<-runif(100,0,10)
+y<-rnorm(100,mu,sigma)
+print(y)
+```
+
+### M.4
+$$
+y_{i} \sim Normal(\mu_i, \sigma) 
+$$
+
+$$
+\mu_i = \alpha + \beta x_i
+$$
+
+$$
+\alpha \sim Normal(130,10)   
+$$
+$$
+\beta \sim Normal(3,2)
+$$
+
+$$
+\sigma \sim Uniform(0,40)
+$$
+
+i = row index in a data frame  
+first line = likelihood  
+second line = linear model  
+then it's the priors  
+They are students, I don't know the age but I'am assuming they are about 10 years old at the beginning of the study (affects the prior alpha)  
+alpha is the intercept and beta is the slope (kind of rate)  
+sigma is the standard deviation, it must be positive. I choose a flat prior. 
+
+### M.5
+As student got taller each year we need to inform the prior for the slope (beta)  
+
+### M.6
+It impacts sigma
