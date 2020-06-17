@@ -1,0 +1,355 @@
+---
+title: "Stat-rethink Chapter 4"
+author: "Mariana CHiozza"
+date: "6/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+```
+
+# Geocentric models
+
+Linear regression (LR) as a family of simple statisitcal models that attempt to learn about the mean and variane of some measurement, using a combination of other measurements.
+
+LR use Gaussian distribution to describe the model uncertainty of the measure of interest.
+
+
+## Why normal distributions are normal
+
+### Example 1. Position of 1000 people in a soccer field flipping a coin 16 times. 
+```{r}
+pos <- replicate (1000, sum (runif(16, -1,1)))
+hist(pos)
+plot(density(pos), main="Final positions")
+
+pos2 <- replicate (1000, sum (runif(500, -1,1)))
+hist(pos2)
+plot(density(pos2), main="Final positions 2")
+
+pos3 <- replicate (1000, sum (runif(10000, -1,1)))
+hist(pos3)
+plot(density(pos3), main="Final positions 3")
+
+```
+
+Adding random values to a distribution converges to a normal. Each sample is a deviation from the average. In the process of adding deviation, they will be canceled. THe more samples, the more chances to be canceled.  
+
+### Example 2. Growth rate as influenced by 12 loci that interact between each other (their effects multiply)
+
+```{r}
+prod(1+runif(12,0,0.1)) # generates random numbers between 1.0 and 1.1 representing a proportional increase in growth. These random products will have a normal distribution. Multiplying small numbers is similar to addition. Something similar happens by converting large deviates into logs. Adding logs will end up in a Gaussian distribution. 
+
+growth<- replicate(10000, prod(1+runif(12,0,0.1)))
+dens(growth , norm.comp=TRUE)
+
+```
+
+### Building a regression model
+
+The posterior distribution will be a distribution of Gaussian distributions....
+
+```{r}
+library(rethinking)
+data(Howell1)
+d<-Howell1
+str(d) # 0=female and 1=male
+precis(d, hist=FALSE)
+d2<-d[d$age>=18, ]
+```
+
+Model using a Gaussian distribution
+
+```{r}
+dens(d2$height)
+```
+
+Which Gaussian distribution?? There are infinite number of Gaussian distributions with different combinations of mean and sd. 
+
+Plotting the Priors 
+
+h~N(mu,sigma)
+mu~N(178, 20)
+sigma~Uniform(0, 50)
+
+```{r}
+curve (dnorm (x, 178, 20) , from=100, to=250)
+curve (dunif(x,0,50), from=-10, to=60)
+```
+
+PRIOR PREDICTIVE, sampling from the prior to simulate heights. How to use the priors to simulate heights.
+
+```{r}
+sample_mu<-rnorm(10000, 178, 20)
+sample_sigma<-runif(10000, 0, 50)
+prior_h<-rnorm (10000, sample_mu, sample_sigma)
+dens(prior_h)
+dens(sample_mu)
+dens(sample_sigma)
+```
+
+Grid approximation of the posterior distribution
+
+```{r}
+mu.list<-seq(from=150, to=160, length.out=100)
+sigma.list<-seq(from=7, to=9, length.out = 100)
+post<-expand.grid(mu=mu.list, sigma=sigma.list)
+post$LL<-sapply(1:nrow(post) , function (i) sum( 
+  dnorm(d2$height, post$mu[i], post$sigma[i], log=TRUE)))
+post$prod<-post$LL + dnorm (post$mu, 178,20, TRUE) +
+  dunif(post$sigma,0,50,TRUE)
+post$prob<-exp(post$prod-max(post$prod))
+contour_xyz(post$mu, post$sigma, post$prob)
+
+```
+
+Sampling the posterior
+
+```{r}
+sample.rows<-sample (1:nrow(post), size = 10000, replace = TRUE , prob=post$prob)
+sample.mu=post$mu[sample.rows]
+sample.sigma=post$sigma[sample.rows]
+plot (sample.mu, sample.sigma, cex=0.5, pch=16, col=col.alpha(rangi2,0.1))
+```
+
+Finding the posterior distribution with quap: Quadratic approximation
+
+```{r}
+data(Howell1)
+d<-Howell1
+d2<-d[d$age>=18, ]
+
+flist=alist(height~dnorm(mu, sigma),
+            mu~dnorm(178,20),
+            sigma~dunif(0,50))
+
+m4.1=quap(flist,data=d2) #fir the model to the d2 data
+precis(m4.1)
+
+m4.2=quap(alist(height~dnorm(mu, sigma),
+            mu~dnorm(178,0.1),
+            sigma~dunif(0,50)), data=d2)
+
+precis(m4.2) #Even though we chance the sd of the mu prior, the estimate of sigma changed a lot.
+```
+
+Quadratic approximation is a multi-dimensional Gaussian distribution (a list of means and a matrix of variances and covariances).
+
+```{r}
+vcov(m4.1) # to see the matrix of variances and covariances for model m4.1
+
+diag(vcov(m4.1)) # list of variances
+
+cov2cor(vcov(m4.1)) # correlation matrix
+```
+
+Sampling the quadratic posterior. 
+
+Sampling vectors of values from the multi-dimensional posterior Gaussian distribution.
+
+```{r}
+post<-extract.samples(m4.1, n=10000)
+head(post)
+precis(post) # very similar to m4.1 model
+```
+
+
+## Linear Prediction
+
+Heights covaries with weight.
+
+```{r}
+data("Howell1"); d=Howell1; d2=d[d$age>=18, ]
+plot(d2$height~d2$weight)
+```
+
+Make mu a linear function of the predictor variable and other parameters= Linear Model
+
+Consider all lines that relate one variable to the other. Rank all of these lines by plausibility given the data. Then, get a posterior distribution.
+
+Building the posterior approximation:
+
+```{r}
+data(Howell1); d<-Howell1; d2<- d[d$age>=18, ]
+
+xbar<-mean(d2$weight) # average weight
+
+
+m4.3<-quap(alist(
+height~dnorm(mu, sigma),
+mu<-a+b*(weight-xbar), # is a function of parameters a and b.
+a~dnorm(178,20),
+b~dlnorm(0,1),
+sigma~dunif(0,50)), 
+data = d2)
+
+precis(m4.3) #the 5.5% and 94.5% quantiles are percentile interval boundaries corresponding to an 89% (default) compatibility interval=89% of the posterior probability lies between 0.84 and 0.97 for the slope.
+
+round(vcov (m4.3), 3) #variance/covariance matrix.
+pairs(m4.3) #lack of variance results from centering
+
+plot (height~weight,  data=d2, col=rangi2)
+post=extract.samples(m4.3)
+a_map=mean(post$a)
+b_map=mean(post$b)
+curve(a_map + b_map*(x - xbar), add=TRUE) #couldnt get the graph as in the book
+# the line is the most plausible line in the infinite universe of lines that the posterior distribution has considered.
+
+```
+
+
+Plotting regression intervals and countours
+
+```{r}
+post<-extract.samples(m4.3)
+mu_at_50<- post$a + post$b*(50-xbar)
+dens(mu_at_50, col=rangi2, lwd=2, xlab="mu|weight=50")
+PI(mu_at_50, prob=0.89)
+mu<-link(m4.3) #take the quap, sample it and compute mu for each case in the data and sample.
+str(mu) # a big matrix of mu values. Each row is a sampe from the posterior.
+
+# Now, we want a distribution of mu for each weight value
+
+weight.seq<-seq(from=25, to=70, by=1)
+mu<-link(m4.3, data=data.frame(weight=weight.seq))
+str(mu)
+plot(height~weight, d2, type ="n")
+for (i in 1:100 ) 
+points (weight.seq, mu[i, ], pch=16, col=col.alpha(rangi2,0.1))
+
+mu.mean<-apply(mu, 2, mean)
+mu.PI<-apply(mu, 2, PI, prob=0.89)
+plot (height~weight, data=d2, col=col.alpha(rangi2, 0.5))
+lines(weight.seq, mu.mean)
+shade(mu.PI, weight.seq)
+```
+
+
+Prediction intervals: we want to incorporate uncertainty due to the first line of the model (h~N(mu, sigma)). We need to incorporate sigma in the predictions.
+
+```{r}
+sim.height<-sim(m4.3, data=list(weight=weight.seq))
+str(sim.height) # is a matrix of simulated height
+
+height.PI<-apply(sim.height,2,PI, prob=0.89)
+mu.HPDI<-apply(mu, 2, HPDI, prob=0.89)
+
+plot(height~weight, d2, col=col.alpha(rangi2,0.5))
+lines(weight.seq, mu.mean)
+shade(mu.HPDI, weight.seq)
+shade(height.PI, weight.seq)
+```
+
+## Curves from lines
+
+There are two methods that use linear regression to build curves:
+
+1) Polynomial regression: A comparison of linear, quadratic and cubic.
+
+
+```{r}
+d=Howell1
+plot(height~weight, d) #non adults are included. # give a parabolic (second order) model of the mean
+```
+
+2) B-splines: is a smooth function build out of smaller component functions. Cherry-blossom data set:
+
+```{r}
+data("cherry_blossoms")
+d<-cherry_blossoms
+precis(d)
+plot(d$doy~d$year)
+```
+
+
+How we can extract a trend with b-spline? Divide predictor variable into parts. A parameter is assigned to each part.
+
+
+
+
+## PRACTICE
+
+### 4M1
+```{r}
+sample2_mu<-rnorm(10000, 0, 10)
+sample2_sigma<-rexp(10000, 1)
+prior_y<-rnorm (10000, sample2_mu, sample2_sigma)
+dens(prior_y)
+```
+
+### 4M2
+
+```{r}
+ylist<-alist(y ~ dnorm(mu, sigma), 
+             mu~dnorm(0,10),
+             sigma~dexp (1)
+             )
+```
+
+### 4M3
+
+yi~Normal(mu, sigma)
+mu_i=a+b*x_i
+a~Normal(0,10)
+b~Uniform(0,1)
+sigma~Exponential (1)
+
+### 4M4
+
+height_i~Normal (mu, sigma)
+mu_i= a + b*year_i
+a~Normal (178, 20)
+b~Normal (0.1, 0)
+sigma~Uniform (0, 50)
+
+### 4M5
+I do not think my priors change.
+
+### 4M6
+
+sigma~Uniform (0, 64)
+
+### 4M7
+
+```{r}
+m4.3bis<-quap(alist(
+height~dnorm(mu, sigma),
+mu<-a+b*(weight), 
+a~dnorm(178,20),
+b~dlnorm(0,1),
+sigma~dunif(0,50)), 
+data = d2)
+
+precis(m4.3bis) 
+
+round(vcov (m4.3bis), 3) 
+pairs(m4.3bis) 
+
+plot(height~weight, data=d2, col=rangi2)
+postbis<-extract.samples(m4.3bis)
+a_mapbis<-mean(postbis$a)
+b_mapbis<-mean(postbis$b)
+curve(a_mapbis + b_mapbis*(x) , add=TRUE)
+```
+
+Mean and sd of the intercept (a) changed.
+Covariation between parameters exists.
+Posterior prediction looks the same.
+
+### 4M8
+
+```{r}
+d2<-d[complete.cases(d$doy) , ]
+num_knots=25
+knot_list=quantile (d2$year , probs = seq(0,1,length.out = num_knots))
+
+library(splines)
+B=bs(d2$year,
+     knots = knot_list[-c(1,num_knots)] ,
+     degree = 3 , intercept = TRUE)
+plot(NULL , xlim=range(d2$year) , ylim=c(0,1) , xlab="year" , ylab="basis")
+for (i in 1:ncol(B)) lines (d2$year , B[,i])
+```
+
