@@ -12,8 +12,9 @@ library(rethinking)
 #library(brms)
 ```
 
-##E1
-Which of these is the likelihood?
+**I'd like to discuss M6 and M7**
+
+### E1 Which of these is the likelihood?
 $$
 \begin{array}{l}
 y_i \sim Normal(\mu, \sigma) \\
@@ -24,16 +25,14 @@ $$
 
 $y_i \sim Normal(\mu, \sigma)$ is the likelihood.
 
-##E2
+### E2 How many parm in prior?
 There are 2 parameters in the posterior distribution, $\mu$ and $\sigma$.
 
-##E3. 
-Write that model using Bayes' theorem. 
+### E3 Write that model using Bayes' theorem. 
 
 Ugh. Not that good in Latex.
 
-##E4. 
-Which of these is the linear model?
+### E4 Which of these is the linear model?
 $$
 \begin{array}{l}
 h_i \sim Normal(\mu_i, \sigma) \\
@@ -46,12 +45,10 @@ $$
 
 $\mu_i = \alpha + \beta (x_i - \bar{x})$ is our linear model. Although I think there is a typo in the book in the likelihood. 
 
-##E5 
-How many parameters are in that posterior distribution?
+### E5 How many parameters are in that posterior distribution?
 Three - $\alpha$, $\beta$, and $\sigma$. 
 
-##M1
-Simulate observed y values from the prior for the model below:
+### M1 Simulate observed y values from the prior for the model below:
 
 $$
 \begin{array}{l}
@@ -68,9 +65,7 @@ prior_h <- rnorm(1e4, sample_mu, sample_sig)
 dens(prior_h)
 ```
 
-###M2
-
-Translate this into a quap formula.
+### M2 Translate this into a quap formula.
 
 ```{r}
 flist <- 
@@ -82,11 +77,10 @@ flist <-
 ```
 
 
-### M3
-
+### M3 
 This is the same as **E4**
 
-###M4
+### M4 Mathematical model for student heights over 3 years
 You measure student heights over 3 years. I want a linear regression predicting height using year as a predictor. 
 Write a mathematical model for this. Defend it!
 
@@ -100,15 +94,17 @@ h_i \sim Normal(\mu_i, \sigma) \\
 \end{array}
 $$
 
-###M5
+### M5 Think about the priors
 No because I already forced the $\beta$ to be positive by using that LogNormal thing. 
 
-###M6
-Well if the variance is never over 64cm, then it seems I shouldn't have chosen the exponential distribution for the $\sigma$. I suppose I'd update it to:
+### M6 Update priors based on new info
+I'm not sure how I'd add this information to the *exponential* distribution. In my ignorance I suppose I'd update it to:
 
 $\sigma \sim Uniform(0, 8)$
 
-##M7
+**I'd like help on this one**
+
+### M7 Height as function of weight, HELP 
 Fit m4.3 again. 
 
 ```{r}
@@ -119,18 +115,18 @@ d2 <-
 
 xbar <- mean(d2$height)
 
-m4.3 <- 
+hmod_cent <- 
   quap(
     alist(
       height ~ dnorm(mu, sigma),
       mu <- a + b*(weight - xbar),
       a ~ dnorm(178, 20),
-      b <- dlnorm(0, 1),
+      b ~ dlnorm(0, 1),
       sigma ~ dunif(0, 50)
     ),
     data = d2)
 
-precis(m4.3)
+precis(hmod_cent)
 ```
 
 Hmmm. I'm not getting the same answer they got. What is wrong?
@@ -139,74 +135,142 @@ Hmmm. I'm not getting the same answer they got. What is wrong?
 Pretend it's fine, I guess. 
 ```{r}
 
-post <- extract.samples(m4.3) #--get our posterior samples of a, b, and sigma
+post_hmod_cent <- extract.samples(hmod_cent) #--get our posterior samples of a, b, and sigma
 
-p4.3 <- 
+p_hmod_cent <- 
   d2 %>% 
-  mutate(a = mean(post$a),
-         b = mean(post$b),
+  mutate(a = mean(post_hmod_cent$a),
+         b = mean(post_hmod_cent$b),
          height_pred = a + b * (weight - xbar)) %>% 
   ggplot(aes(weight, height)) + 
   geom_point() +
-  geom_line(aes(weight, height_pred), color = "green4")
+  geom_line(aes(weight, height_pred), color = "green4") + 
+  labs(title = "Centered Model")
 
-p4.3
 ```
 
 Fit it without the centering
 
 ```{r}
-m4.3alt <- 
+hmod <- 
   quap(
     alist(
       height ~ dnorm(mu, sigma),
       mu <- a + b*(weight),
       a ~ dnorm(178, 20),
-      b <- dlnorm(0, 1),
+      b ~ dlnorm(0, 1),
       sigma ~ dunif(0, 50)
     ),
     data = d2)
 
-post <- extract.samples(m4.3alt) #--get our posterior samples of a, b, and sigma
+post_hmod <- extract.samples(hmod) #--get our posterior samples of a, b, and sigma
 
-p4.3alt <- 
+p_hmod <- 
   d2 %>% 
-  mutate(a = mean(post$a),
-         b = mean(post$b),
+  mutate(a = mean(post_hmod$a),
+         b = mean(post_hmod$b),
          height_pred = a + b * (weight)) %>% 
   ggplot(aes(weight, height)) + 
   geom_point() +
-  geom_line(aes(weight, height_pred), color = "red")
+  geom_line(aes(weight, height_pred), color = "red") + 
+  labs(title = "Un-centered Model")
 
-p4.3alt
 ```
 
 ```{r}
 library(patchwork)
-p4.3 + p4.3alt
+p_hmod_cent + p_hmod
 ```
 
 It looks identical to me. Look at the covariance, they say.
 
 The 'centered' model:
 ```{r}
-precis(m4.3)
+precis(hmod_cent)
 ```
 
 The un-centered one:
 ```{r}
-precis(m4.3alt)
+precis(hmod)
 ```
 
 Centered:
 ```{r}
-cov2cor(vcov(m4.3))
+cov2cor(vcov(hmod_cent))
 ```
 
 The 'un-centered' model:
 ```{r}
-cov2cor(vcov(m4.3alt))
+cov2cor(vcov(hmod))
 ```
 
+I would like help.
 
+
+### M8
+More knots to the cherry blossom data!
+
+Start with book example
+```{r}
+data("cherry_blossoms")
+cd <- cherry_blossoms %>% filter(!is.na(doy))
+num_knots <- 15
+knot_list <- quantile( cd$year, probs = seq(0, 1, length.out = num_knots))
+```
+
+Fit the splines
+```{r}
+library(splines)
+splB15 <- bs(cd$year,
+            knots = knot_list[-c(1, num_knots)],
+            degree = 3, intercept = TRUE)
+
+plot (NULL, xlim = range(cd$year), ylim = c(0, 1), xlab = "year", ylab = "basis")
+for (i in 1:ncol(splB15)) lines(cd$year, splB15[, i])
+
+```
+
+Well I would use ggplot2 anyways. Let's try using the geom_smooth functionality.
+**Note** The default degree for *bs* is 3. If I try specifying *knots* as *num_knots*, it does something strange. So instead I specify *df* as *num_knots*, and it 'works'. 
+
+```{r}
+ggplot(cd, aes(year, doy)) +
+  geom_point() +
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, df = num_knots, degree = 3)) + 
+  labs(title = "15 knots")
+```
+
+```{r}
+ggplot(cd, aes(year, doy)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, df = num_knots*2, degree = 3), color = "red") + 
+  labs(title = "30 knots")
+```
+
+```{r}
+ggplot(cd, aes(year, doy)) +
+  geom_point() +
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, num_knots))
+```
+
+Use quap, not sure how to translate this plot into ggplot2. It seems the *se* argument in *geom_smooth* matches these though.  
+```{r}
+spl_mod <- 
+  quap(
+    alist(
+      D ~ dnorm(mu, sigma),
+      mu <- a + B %*% w, 
+      a ~ dnorm(100, 10),
+      w ~ dnorm(0, 10),
+      sigma ~ dexp(1)
+    ), data = list(D = cd$doy, B = splB15),
+    start = list(w = rep(0, ncol(splB15)))
+  )
+
+mu <- link(spl_mod)
+mu_PI <- apply(mu, 2, PI, 0.97)
+plot(cd$year, cd$doy)
+shade(mu_PI, cd$year)
+
+```
 
