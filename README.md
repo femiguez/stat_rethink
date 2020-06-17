@@ -17,8 +17,11 @@ Notes
 
 [Chapter 3:  by Mariana](https://femiguez.github.io/stat_rethink/notes/chapter_03/Stat-rethink_Chap3_mariana.html)
 
+[Chapter 4: Geocentric Models](https://femiguez.github.io/stat_rethink/notes/chapter_04/ch_04_Geocentric_Models.html)
+
 [Chapter 4: Mariana Notes](https://femiguez.github.io/stat_rethink/notes/chapter_04/Stat-rethink_Chap4_mariana.html)
 
-[Chapter 4: Geocentric Models](https://femiguez.github.io/stat_rethink/notes/chapter_04/ch_04_Geocentric_Models.html)
+[Chapter 4: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_04/ch_04_practice-gina.html)
+
 
 
