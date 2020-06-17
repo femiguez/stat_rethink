@@ -267,3 +267,96 @@ shade(mu.PI, weight.seq)
 # Hallelujah, someone did this for me
 #https://bookdown.org/ajkurz/Statistical_Rethinking_recoded/linear-models.html#a-gaussian-model-of-height
 
+# brms and rethinking share commands. Get the data, then detach rethinking
+library(tidyverse)
+rm(list = ls())
+library(rethinking)
+data(Howell1)
+d <- Howell1
+rm(Howell1)
+detach(package:rethinking, unload = T)
+library(brms)
+
+#--adults only
+d2 <-
+  d %>%
+  filter(age >= 18)
+
+ggplot(data = tibble(x = seq(from = 100, to = 250, by = .1)),
+       aes(x = x, y = dnorm(x, mean = 178, sd = 20))) +
+  geom_line() +
+  ylab("density")
+
+n <- 1e4
+set.seed(4)
+tibble(sample_mu = rnorm(n, mean = 178, sd = 20),
+       sample_sigma = runif(n, min = 0, max = 50)) %>% #--smaller dist
+  mutate(x = rnorm(n, mean = sample_mu, sd = sample_sigma)) %>%
+  ggplot(aes(x = x)) +
+  geom_density(fill = "green2", size = 0) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(subtitle = expression(paste("Prior predictive distribution for ", italic(h[i]))),
+       x = NULL) +
+  theme(panel.grid = element_blank())
+
+#--use grid approximation (not real, but helpful)
+n <- 200
+d_grid <-
+  tibble(mu = seq(from = 140, to = 160, length.out = n),
+         sigma = seq(from = 4, to = 9, length.out = n)) %>%
+  # we'll accomplish with `tidyr::expand()` what McElreath did with base R `expand.grid()`
+  expand(mu, sigma)
+
+# define our own function (I totally did this!)
+grid_function <- function(mu, sigma){
+  dnorm(d2$height, mean = mu, sd = sigma, log = T) %>%
+    sum()
+}
+
+
+#--ok, yeah this is much slower than mcelreath's code....
+# d_grid <-
+#   d_grid %>% #--our my and sigma combos
+#   mutate(log_likelihood = map2(mu, sigma, grid_function)) %>%
+#   unnest() %>%
+#   mutate(
+#     prior_mu = dnorm(mu, mean = 178, sd = 20, log = T),
+#     prior_sigma = dunif(
+#       sigma,
+#       min = 0,
+#       max = 50,
+#       log = T
+#     )
+#   ) %>%
+#   mutate(product = log_likelihood + prior_mu + prior_sigma) %>%
+#   mutate(probability = exp(product - max(product)))
+
+# sampling from the posterior
+# set.seed(4)
+# d_grid_samples <-
+# d_grid %>%
+#   sample_n(size = 1e4, replace = T, weight = probability)
+# d_grid_samples %>%
+#   ggplot(aes(x = mu, y = sigma)) +
+#   geom_point(size = .9, alpha = 1/15) +
+#   scale_fill_viridis_c() +
+#   labs(x = expression(mu[samples]),
+#        y = expression(sigma[samples])) +
+#   theme(panel.grid = element_blank())
+
+
+options(mc.cores = parallel::detectCores())
+
+#--this notation is definitely not as straight forward as the quap
+
+b4.1 <-
+  brm(data = d2, 
+      family = gaussian,
+      height ~ 1,
+      prior = c(prior(normal(178, 20), class = Intercept),
+                prior(uniform(0, 50), class = sigma)),
+      iter = 31000, warmup = 30000, chains = 4, #cores = 4, #--why do they have this?
+      seed = 4)
+
+
+# never mind. back to the book. -------------------------------------------
