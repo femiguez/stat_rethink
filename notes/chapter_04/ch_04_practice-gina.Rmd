@@ -113,7 +113,9 @@ d2 <-
   Howell1 %>% 
   filter(age >= 18)
 
-xbar <- mean(d2$height)
+## xbar should be the mean of weight, not height
+## xbar <- mean(d2$height) old
+xbar <- mean(d2$weight)
 
 hmod_cent <- 
   quap(
