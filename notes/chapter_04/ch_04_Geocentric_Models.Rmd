@@ -57,6 +57,7 @@ h_i \sim Normal(\mu_i, \sigma) \\
 \sigma \sim Uniform(0,50) \\
 \end{array}
 $$
+
 ### Some concepts
 
 * Thinking hard about setting up priors. He provides an example of constraining the slope to be positive in this case.
@@ -104,7 +105,7 @@ ggplot() +
   ggtitle("Height vs. weight, fitted (blue), mean band (red) \n and prediction band (purple)")
 ```
 
-## Even worse: nonlinear regression
+## Even better: nonlinear regression
 
 ```{r, echo = TRUE}
 ### One possible equation is the Hill3
