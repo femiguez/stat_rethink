@@ -1,0 +1,54 @@
+---
+title: "The Many Variables & The Spurious Waffles"
+author: "Fernando Miguez"
+date: "6/22/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(nlraa)
+library(ggplot2)
+```
+
+# The Many Variables & The Spurious Waffles
+
+We begin the chapter with the classic statement that
+
+> Correlation is not causation
+
+and
+
+> But since most correlations do not indicate causal relationships, we need tools for distinguishing mere associations from evidence of causation
+
+## Reasons for Multiple Regression
+
+1. Statistical control of confounds
+
+2. Multiple and complex causation
+
+3. Interactions
+
+## Causal Inference
+
+> cause does not really exist; it's just a psychological illusion
+
+> in complex systems, everything seems to cause everything else
+
+## Spurious association
+
+* **standardize** is a function in the **rethinking** package but it just uses **scale**. *start mini-rant*: The function is undocumented. This is an example of github packages not in CRAN being of somewhat inferior quality. *end mini-rant*.
+
+However, note here that he standardizes both the response and the predictors.
+
+## Thinking causally or "think before you regress"
+
+One technique that he uses again here is to simulate data from the prior distributions. This seems like a good strategy for refining priors. However, I notice that he does use the figures in 5.2 to justify some of his decisions. Although, I think this is ok, this means that we are looking at the data to make statements about the priors, which, technically, is incorrect.
+
+## Directed Acyclic Graphs
+
+> There is no inference without assumption
+
+

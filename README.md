@@ -23,5 +23,7 @@ Notes
 
 [Chapter 4: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_04/ch_04_practice-gina.html)
 
+[Chapter 5: The Many Variables](https://femiguez.github.io/stat_rethink/notes/chapter_05/ch_05_The_Many_Variables.html)
+
 
 
