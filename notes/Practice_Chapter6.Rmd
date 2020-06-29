@@ -1,0 +1,14 @@
+---
+title: "Chapter 6 Stat Rethink Practice"
+author: "Anabelle Laurent"
+date: "6/28/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+```
+
+Multicollinearity = very strong association between two or more predictor variables. The consequence is that the posterior distribution will seem to suggest that none of these vrariables is reliably associated with the outcome. 

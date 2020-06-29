@@ -1,0 +1,188 @@
+---
+title: "Chapter 5 Stat Rethink Practice"
+author: "Anabelle Laurent"
+date: "6/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+```
+
+## E1
+Models (2), (3) and (4) have two predictors $x_i$ and $z_i$  
+
+## E2
+$$
+D_{i} \sim Normal(\mu_i, \sigma) 
+$$
+$$
+\mu_i = \alpha + \beta_L* L_i + \beta_P* P_i
+$$
+with:  
+D is the animal diversity  
+L is the latitude (predictor)  
+P is the plant diversity (predictor)  
+$\alpha$ is the mean  
+$\beta_L$ and $\beta_P$ are slope parameters  
+
+## E3
+$$
+T_{i} \sim Normal(\mu_i, \sigma) 
+$$
+$$
+\mu_i = \alpha + \beta_F* F_i + \beta_S* S_i
+$$
+with:  
+T is the time to PhD degree
+F is the amount of funding (predictor)  
+S is the size of laboratory (predictor)  
+$\alpha$ is the mean  
+$\beta_F$ and $\beta_S$ are slope parameters  
+
+Each slope parameters ($\beta_F$ and $\beta_S$) are on the right side of zero (positive slope)  
+
+## E4
+models (3) and (4)
+
+## M1 Spurious correlation
+It's like the model m5.3 (page 133)
+
+```{r}
+data(WaffleDivorce)
+d <- WaffleDivorce
+
+# standardize variables
+d$D <- standardize( d$Divorce )
+d$M <- standardize( d$Marriage )
+d$A <- standardize( d$MedianAgeMarriage )
+
+m1 <- quap(
+    alist(
+        D ~ dnorm( mu , sigma ) ,
+        mu <- a + bM*M + bA*A ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        bA ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = d )
+precis( m1 )
+plot( coeftab(m1), par=c("bA","bM") )
+```
+
+## M2 Masked relationship
+It's like the model m5.6 (page 148)
+
+```{r}
+data(milk)
+d <- milk
+d$K <- standardize( d$kcal.per.g )
+d$N <- standardize( d$neocortex.perc )
+d$M <- standardize( log(d$mass) )
+dcc <- d[ complete.cases(d$K,d$N,d$M) , ]
+m5.6 <- quap(
+    alist(
+        K ~ dnorm( mu , sigma ) ,
+        mu <- a + bM*M ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dcc )
+precis(m5.6)
+```
+## M3
+How a higher divorce rate cause a higger marriage rate? Because a higger divorce rate can mean a higher number of inhabitants (so a higher rate of marriage)
+
+## M4
+```{r, eval=FALSE}
+m1 <- quap(
+    alist(
+        D ~ dnorm( mu , sigma ) ,
+        mu <- a + bM*M + bA*A + bLDS*LDS,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        bA ~ dnorm( 0 , 0.5 ) ,
+        bLDS ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = d )
+```
+
+## M5
+$$
+O_{i} \sim Normal(\mu_i, \sigma) 
+$$
+$$
+\mu_i = \alpha + \beta_G* G_i + \beta_D* D_i + \beta_E* E_i
+$$
+
+With:  
+O = obesity rate  
+G = price of gasoline  
+D = time driving  
+E = time exercising  
+
+Question: How should we measure the variables D and E? Time? Frequence per week? Energy (calories)?  
+
+## H1
+
+## H2
+```{r}
+data(WaffleDivorce)
+d <- list()
+d$A <- standardize( WaffleDivorce$MedianAgeMarriage )
+d$D <- standardize( WaffleDivorce$Divorce )
+d$M <- standardize( WaffleDivorce$Marriage )
+
+m5.3_A <- quap(
+    alist(
+      ## A -> M -> D
+        D ~ dnorm( mu , sigma ) ,
+        mu <- a + bM*M + bA*A ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        bA ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 ),
+      ## A -> M
+        M ~ dnorm( mu_M , sigma_M ),
+        mu_M <- aM + bAM*A,
+        aM ~ dnorm( 0 , 0.2 ),
+        bAM ~ dnorm( 0 , 0.5 ),
+        sigma_M ~ dexp( 1 )
+    ) , data = d )
+```
+
+
+## H4
+```{r}
+data(WaffleDivorce)
+d <- WaffleDivorce
+str(d$South)
+# standardize variables
+d$D <- standardize( d$Divorce )
+d$M <- standardize( d$Marriage )
+d$A <- standardize( d$MedianAgeMarriage )
+d$S <- standardize( d$South )
+m5 <- quap(
+    alist(
+        D ~ dnorm( mu , sigma ) ,
+        mu <- a + bM*M + bA*A + c[South]*S,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        bA ~ dnorm( 0 , 0.5 ) ,
+        c[South] ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = d )
+precis(m5,depth = 2)
+#plot(coeftab(m5),par=c("bM","bA","bS"))
+```
+```{r}
+ggplot(data = WaffleDivorce, 
+       aes(x = South, y =Divorce)) + geom_point()
+```
+```{r}
+post <- extract.samples(m5)
+post$diff_fm <- post$c[,1] - post$c[,2]
+precis( post , depth=2 )
+```
+
