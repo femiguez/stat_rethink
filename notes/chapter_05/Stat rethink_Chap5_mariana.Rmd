@@ -1,0 +1,510 @@
+---
+title: "Stat_rethink Chapter 5"
+author: "Mariana CHiozza"
+date: "6/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The many variables and the spurious waffles
+
+- Correlation is not surprising. In large data sets, every pair of variables has a non-zero correlation. But, we need to distinguish association from causation. We can do that with MULTIPLE REGRESSION where:
+
+1) There is a control for the variables that seems important but they are not.
+
+2) Multiple causes are considered 
+
+3) Interactions: Correlations and dependencies between causes/predictors.
+
+Multivariate models as tools for revealing spurious correlations and for revealing important ones.
+
+## Spurious association
+
+```{r}
+library(rethinking)
+data(WaffleDivorce)
+d<-WaffleDivorce
+
+# Standarize variables
+
+d$D <-standardize(d$Divorce)
+d$M <-standardize(d$Marriage)
+d$A <-standardize(d$MedianAgeMarriage)
+
+# Calculate sd 
+sd(d$MedianAgeMarriage)
+
+# Regression model for divorce vs age of marriage
+
+m5.1<-quap(
+  alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + bA*A,
+    a ~ dnorm (0,0.2),
+    bA ~ dnorm(0,0.5),
+    sigma~dexp(1)
+  ), data=d)
+
+precis(m5.1)
+
+```
+
+
+Simulate from the priors:
+
+```{r}
+set.seed(10)
+prior<-extract.prior(m5.1)
+mu=link(m5.1, post=prior, data=list(A=c(-2,2)))
+plot(NULL, xlim=c(-2,2), ylim=c(-2,2))
+for (i in 1:50) lines(c(-2,2) , mu[i, ] , col=col.alpha("black", 0.4))
+
+```
+
+Simulate from the posterior:
+
+```{r}
+A_seq<-seq(from=-3, to=3.2, length.out=30) # Why this step is requiered?
+mu<-link (m5.1, data=list(A=A_seq))
+mu.mean<-apply (mu, 2, mean)
+mu.PI<-apply(mu, 2, PI)
+
+plot(D ~ A, data=d, col=rangi2 )
+lines(A_seq, mu.mean, lwd=2)
+shade(mu.PI, A_seq)
+
+# There is a strong negative relationship between D and A.
+
+
+```
+
+```{r}
+m5.2<-quap(
+  alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + bM*M,
+    a ~ dnorm (0,0.2),
+    bM ~ dnorm(0,0.5),
+    sigma~dexp(1)
+  ), data=d)
+precis(m5.2)
+
+```
+
+
+
+
+## How to decide which predictor is better? Median age marriage? Marriage rate?
+
+### 1) Think before you regress
+
+Causal graph= DAG (directed acyclic graph). To define direct and indirect paths that relates the variable and the predictors.
+Indirect paths=MEDIATION
+
+```{r}
+library(dagitty)
+dag5.1=dagitty("dag{A-> D; A->M; M->D }")
+coordinates(dag5.1)<-list(x=c(A=0,D=1,M=2) , y=c(A=0,D=1,M=0))
+drawdag(dag5.1)
+```
+
+```{r}
+
+```
+
+Are D and M really directed correlated? or D and M are associated because they both "listen" to A??
+
+REMEMBER: CAUSAL INFERENCE ALWAYS DEPENDS UPON UNVERIFIABLE ASSUMPTIONS.
+
+
+### 2) Testable implications
+
+
+```{r}
+library(dagitty)
+dag5.2=dagitty("dag{A-> D; A->M }")
+coordinates(dag5.2)<-list(x=c(A=0,D=1,M=2) , y=c(A=0,D=1,M=0))
+drawdag(dag5.2)
+```
+
+Conditional independencies: Some variables are independent of others under certain conditions.
+
+In the DAG #2, all 3 variables are associated with one another.
+
+A is associated with M and D. 
+
+D and M are associated with one another, through A.
+
+BUT, if we condition on A......all the information in M that is relevant to predict D is in A. THerefore, M tell us nothing more about D. So, a testable implication is that D is independent of M, conditional on A.
+
+
+```{r}
+DMA_dag2<-dagitty('dag { D<-A->M }')
+impliedConditionalIndependencies(DMA_dag2)
+```
+
+### 3) Multiple Regression notation
+
+
+D~ dnorm(mu,sigma)
+mu<-a+bM*M+bA*A
+a~dnorm(0,0.2)
+bM~dnorm(0,0.5)
+bA~dnorm(0,0.5)
+sigma~dexp(1)
+
+
+### 4) Approximating the posterior
+
+```{r}
+m5.3<-quap(
+  alist(
+    D ~ dnorm(mu , sigma),
+    mu <- a + bM*M + bA*A,
+    a ~ dnorm (0,0.2),
+    bM ~ dnorm (0,0.5),
+    bA ~ dnorm (0,0.5),
+    sigma~dexp(1)
+  ) , data = d
+)
+
+precis(m5.3)
+
+plot(coeftab (m5.1,m5.2,m5.3), par=c("bA","bM"))
+```
+
+Excelent plot! Very visual but I couldnt replicate it....
+
+Plot interpretation: 
+
+- bA does not change its value when adding another predictor (bM).
+
+- bM does not add any value to the prediction of divorce (D) if we already use bA in the model. There is no direct causal path from marriage rate to divorce rate. It is a spurious association caused by the influence of marriage age on both (the marriage rate and the divorce rate).
+
+Why bA and bM for m5.3 are different? I am probably misinterpreting the graph.
+
+
+### 4) Plotting multivariate posteriors
+
+1) Predictor residual plots
+
+To compute predictor residuals for either of the predictors, we use the other predictor to model it.
+For marriage rate:
+
+```{r}
+m5.4<- quap(
+  alist(
+    M ~ dnorm(mu , sigma),
+    mu <- a + bAM * A,
+    a ~ dnorm (0,0.2),
+    bAM ~ dnorm (0,0.5),
+    sigma~dexp(1)
+    
+  ), data=d
+)
+
+mu<-link(m5.4)
+mu_mean<-apply(mu, 2, mean)
+mu_resid<- d$M - mu_mean
+
+
+plot(D~ mu_resid, data=d, col=rangi2)
+
+```
+
+Positive residuals (states to the right of the zero vertical line) have higher marriage rates than expected. States to the left have lower marriage rate than expected. When plotting the regression line, the slope is almost zero, meaning that the average divorce rate is about the same, so there is little relationship between divorce and marriage rate.
+
+
+
+2) Posterior prediction plots
+
+Observed vs predicted divorce. Help to identify points that are far from the diagonal (1:1). A closer look at these points will help to identify another variable that influences the response, as the proportion of people as members a Church for Idaho State. FOr this state the observed divorce is much lower than the predicted and apparently the proportion of people that belong to a church is modifying that response.
+
+3) Counterfactual plots
+
+Can be produce for any predictor value, even unobserved combinations. Evaluate the outcome by changing one predictor at a time. But, changing one predictor can cause the change of the other.
+
+
+## Masked relationships
+
+```{r}
+library(rethinking)
+data(milk)
+d<-milk
+
+d$K<-standardize(d$kcal.per.g)
+d$N<-standardize(d$neocortex.perc)
+d$M<-standardize(log(d$mass))
+
+dcc<- d [complete.cases(d$k, d$N, d$M) , ] # eliminate NAs
+
+
+m5.5<- quap(
+  alist(
+    K~dnorm(mu, sigma) ,
+    mu<- a +bN*N ,
+    a~ dnorm (0, 0.2) ,
+    bN ~ dnorm (0, 0.5) ,
+    sigma ~ dexp (1) 
+  ) , data=dcc
+)
+
+precis(m5.5)
+
+
+xseq<-seq(from=min(dcc$N) - 0.15, to=max(dcc$N) + 0.15 , length.out = 30)
+
+mu<-link(m5.5, data=list(N=xseq))
+
+mu_mean<-apply(mu, 2, mean)
+
+mu_PI<-apply(mu, 2, PI)
+
+plot(K ~ N , data=dcc)
+
+lines (xseq, mu_mean, lwd=2)
+
+shade (mu_PI, xseq)
+
+```
+
+THe posterior mean line is weakly positive but very imprecise. 
+
+Consider another predictor: female body mass
+
+
+
+```{r}
+m5.6<- quap(
+  alist(
+    K~dnorm(mu, sigma) ,
+    mu<- a +bM*M ,
+    a~ dnorm (0, 0.2) ,
+    bM ~ dnorm (0, 0.5) ,
+    sigma ~ dexp (1) 
+  ) , data=dcc
+)
+
+precis(m5.6)
+
+xseq<-seq(from=min(dcc$M) - 0.15, to=max(dcc$M) + 0.15 , length.out = 30)
+
+mu<-link(m5.6, data=list(M=xseq))
+
+mu_mean<-apply(mu, 2, mean)
+
+mu_PI<-apply(mu, 2, PI)
+
+plot(K ~ M , data=dcc)
+
+lines (xseq, mu_mean, lwd=2)
+
+shade (mu_PI, xseq)
+
+```
+
+
+Consider both predictors:
+
+```{r}
+
+m5.7<- quap(
+  alist(
+    K ~ dnorm(mu, sigma) ,
+    mu <- a + bN*N + bM*M ,
+    a ~ dnorm (0, 0.2) ,
+    bN ~ dnorm (0, 0.5),
+    bM ~ dnorm (0, 0.5) ,
+    sigma ~ dexp (1) 
+  ) , data=dcc
+)
+
+precis(m5.7)
+
+plot(coeftab(m5.5, m5.6, m5.7) , pars=c("bM", "bN"))
+
+```
+
+Adding both predictors have made their estimates move apart.
+This is tha case where the two variables are correlated with the outcome but one is positively correlated and the other is negatively correlated. AND, the predictors are positively correlated between each other.
+
+
+
+
+
+
+
+# Practice
+
+5M1.
+
+Y=Yield
+pp= Precipitation
+sw= soil water content
+
+
+
+5M2.
+
+Y=Yield
+swa= soil water availability for plant growth 
+sd= % of sand in soil
+
+
+
+5M3.
+Income levels could be related to divorce. A low income level could cause a high rate of divorce since limited recreational activities arise from the economical limitations. But a low income level may also cause a high rate of marriage since people may want to live together and marry in order to have access to financial and/or economic benefits of being married. Therefore, predictor variables for rate of marriage would be annual income and divorce rate.
+
+5M4.
+
+```{r}
+library(readxl)
+data_mor<-read_excel("C:/Users/Mariana/Desktop/ISU 2018-19/Statistical Rethinking summer class/stat-rethink/LDS population.xlsx")
+
+library(dplyr)
+d2<-full_join(data_mor, WaffleDivorce)
+
+d2$A<-standardize(d2$MedianAgeMarriage)
+d2$D<-standardize(d2$Divorce)
+d2$M<-standardize(d2$Marriage)
+d2$R<-standardize(d2$PropM)
+
+d3<-d2[complete.cases(d2$A, d2$D, d2$M) , ]
+
+m5.11<-quap(
+  alist(
+    D ~ dnorm(mu , sigma),
+    mu <- a + bM*M + bA*A + bR*R,
+    a ~ dnorm (0,0.2),
+    bM ~ dnorm (0,0.5),
+    bA ~ dnorm (0,0.5),
+    bR ~ dnorm (0,0.5),
+    sigma~dexp(1)
+  ) , data = d3
+)
+
+precis(m5.11)
+
+plot(coeftab(m5.1, m5.2, m5.3, m5.11) , pars=c("bM", "bA", "bR"))
+
+```
+
+
+5M5.
+
+O=Obesity rate (outcome)
+P=Price of gasoline (predictor)
+E=hours of exercise per month
+D=number of days eating out per month
+
+
+O ~ dnorm(mu , sigma),
+    mu <- a + bP*P + bE*E + bD*D,
+    a ~ dnorm (0,0.2),
+    bP ~ dnorm (0,0.5),
+    bE ~ dnorm (0,0.5),
+    bD ~ dnorm (0,0.5),
+    sigma~dexp(1)
+
+
+
+5H1.
+
+```{r}
+dag3<-dagitty('dag { M->A->D }')
+impliedConditionalIndependencies(dag3)
+```
+D is independent of M conditional on A. 
+
+Yes, the data support the conditional independency.
+
+
+5H2.
+
+```{r}
+data("WaffleDivorce")
+d<-list()
+
+d$A <-standardize(WaffleDivorce$MedianAgeMarriage)
+d$D <-standardize(WaffleDivorce$Divorce)
+d$M <-standardize(WaffleDivorce$Marriage)
+
+m5.12<-quap(
+  alist(
+    # M->A
+    A ~ dnorm(mu, sigma),
+    mu <- a + bM*M,
+    a ~ dnorm (0,0.2),
+    bM ~ dnorm(0,0.5),
+    sigma ~ dexp(1),
+    
+    # A->D
+    D ~ dnorm(mu_D, sigma_D),
+    mu_D <- aD + bAD*A,
+    aD ~ dnorm (0,0.2),
+    bAD ~ dnorm(0,0.5),
+    sigma_D ~ dexp(1)
+  ), data=d)
+
+precis(m5.12)
+
+
+M_half<-d$M/2
+
+sim_dat<-data.frame(M=M_half)
+
+s<-sim(m5.12, data=sim_dat, vars=c("A", "D"))
+
+plot(sim_dat$M, colMeans(s$D) , ylim=c(-2,2) , type="l" , 
+     xlab="manipulated M" , ylab="counterfactual D")
+shade(apply(s$D,2,PI) , sim_dat$M)
+mtext("Counterfactual effect of M on D")
+```
+
+
+5H3.
+
+
+```{r}
+library(rethinking)
+data(milk)
+d<-milk
+
+d$K<-standardize(d$kcal.per.g)
+d$N<-standardize(d$neocortex.perc)
+d$M<-standardize(log(d$mass))
+
+dcc<- d [complete.cases(d$k, d$N, d$M) , ] # eliminate NAs
+m5.13<-quap(
+  alist(
+    # M->K<-N
+    K ~ dnorm(mu, sigma),
+    mu <- a + bM*M + bN*N,
+    a ~ dnorm (0 , 0.2),
+    bM ~ dnorm(0 , 0.5),
+    bN ~ dnorm(0 , 0.5),
+    sigma ~ dexp (1),
+    
+    # M->N
+    N ~ dnorm(mu_N, sigma_N),
+    mu_N <- aN + bMN*M,
+    aN ~ dnorm (0 , 0.2),
+    bMN ~ dnorm(0 , 0.5),
+    sigma_N ~ dexp (1)
+  ), data = dcc )
+
+precis(m5.13)
+
+M_double<-d$M*2
+
+mu<-link(m5.13, data=data.frame(M=M_double, N=0))
+#mu_mean<-apply(mu,2,mean)
+#mu_PI<-apply(mu,2,PI)
+#plot(NULL , xlim=range(dcc$M) , ylim=range(dcc$K) )
+#lines(M_double, mu_mean, lwd=2)
+#shade(mu_PI, M_double)
+```
+
