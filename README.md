@@ -25,5 +25,11 @@ Notes
 
 [Chapter 5: The Many Variables](https://femiguez.github.io/stat_rethink/notes/chapter_05/ch_05_The_Many_Variables.html)
 
+[Chapter 5: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_05/Stat-rethink_Chap5_mariana.html)
+
+[Chapter 5: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_05/ch_05_practice-gina.html)
+
+[Chapter 5: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_05/Practice_Chapter5.html)
+
 
 
