@@ -1,0 +1,219 @@
+---
+title: "The Many Variables & The Spurious Waffles"
+author: "Gina Nichols"
+date: "6/29/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(rethinking)
+library(dagitty)
+library(corrplot)
+theme_set(theme_bw())
+```
+
+# Easy
+
+## 5E1. 
+**Which linear model is multiple linear regression?**
+I think (2) and (4). 
+
+## 5E2. 
+$an\_div_i = \alpha + \beta_l*lat + \beta_p*pl\_div_i$
+
+## 5E3
+$$
+\begin{array}{l}
+timephd_i \sim Normal(\mu_i, \sigma) \\
+\mu_i = \alpha + \beta_f(F_i) + \beta_s(S_i) \\
+\alpha \sim Normal(0, 0.2) \\
+\beta_f \sim Normal(0, 0.5) \\
+\beta_s \sim Normal(0, 0.5) \\
+\sigma \sim Exponential(1) \\
+\end{array}
+$$
+
+I think this means there has to be a weak effect of only funding on time to PhD, and a weak effect of only lab size on time to PhD, but either funding and lab size must be positively correlated such that the effects are enhanced when both are included? 
+*I want help on this one*
+
+```{r}
+dag5e3 <- dagitty("dag{ Funding -> TimetoPhD; Funding -> LabSize; LabSize -> TimetoPhD }")
+coordinates(dag5e3) <- list(x = c(Funding = 0, LabSize = 1, TimeToPhD = 2), y = c(Funding = 0, LabSize = 1, TimeToPhD = 0))
+drawdag(dag5e3)
+
+
+```
+
+```{r}
+funding <- rnorm(50)
+labsize <- rnorm(50, funding*0.2)
+timetoPhD <- rnorm(50, funding + labsize)
+dat <- tibble(
+  funding = funding,
+  labsize = labsize, 
+  timetoPhD = timetoPhD)
+
+
+pairs(dat, panel=panel.smooth, lower.panel = NULL)
+```
+
+# Medium
+
+## 5M1
+**What is an example of a spurious correlation?**
+You think root growth is faster when corn is past V6.
+Actually, the soil temperature is generally higher when you are past V6, which could be making it 'look' like root growth is faster due to corn stage, when actually it is the soil temperature. So, once you know the soil temperature, corn stage should not add any more information. But if you know the corn stage, knowing the soil temperature should improve your root growth guess. Maybe? Except corn stage is also related to soil temperature. This is hard. 
+
+## 5M2
+**What is an example of a masked relationship?**
+I'm struggling with these. 
+
+An example of a masking relationship.
+```{r}
+data(milk)
+d <- 
+  milk %>% 
+  select(kcal.per.g, neocortex.perc, mass) %>% 
+  mutate(logmass = log(mass)) %>% 
+  mutate_all(standardize) %>% 
+  drop_na() %>% 
+  select(-mass) 
+
+pairs(d, panel=panel.smooth, lower.panel = NULL)
+```
+
+- Family income is *negatively* correlated with math scores. 
+- Family income is *positively* correlated with calculator costs. 
+- Calculator cost is *positively* correlated with math scores. 
+- Once you correct for having calculator cost, family income has no effect on math scores.  
+
+## 5M3
+**How might high divorce rate cause a higher marriage rate?**
+HIgh divorce rates may cause high marriage rates because if you get divorced you can get married again! And again! And again!
+
+How to evaluate this via multiple regression? I guess just change the predictor variables and response variables?
+*I want other people's thoughts*
+
+## 5M4 
+
+Get the LDS (aka Mormon) population as a percentage. 
+
+```{r, eval=FALSE}
+library(rvest)
+
+url <- "https://www.worldatlas.com/articles/mormon-population-by-state.html"
+html <- read_html(url)
+
+tables <- html %>% html_table(fill = T)
+tables %>% purrr::map(glimpse)
+
+pctmorms <-
+  tables[[1]] %>%
+  janitor::clean_names() %>%
+  select(x_u_feff_state, percentage_of_mormon_residents) %>%
+  mutate(pct_mormon = parse_number(str_remove_all(percentage_of_mormon_residents, "%"))) %>%
+  rename("Location" = 1)
+
+pctmorms %>% write_csv("pop_pct_mormon.csv")
+```
+
+Check the data, does it make sense?
+```{r}
+data("WaffleDivorce")
+
+pctmorms <- read_csv("pop_pct_mormon.csv")
+library(maps)
+map_data("state") %>% 
+  left_join(pctmorms %>% mutate(region = str_to_lower(Location))) %>% 
+  ggplot() + 
+  geom_polygon(aes(x = long, y = lat, fill = pct_mormon, group = group), color = "white") + 
+  coord_fixed(1.3) +
+  scale_fill_viridis_c()
+
+```
+
+Ok but yeah, it's pretty skewed, with most of the values being 0. 
+```{r}
+
+dwaf2 <- 
+  pctmorms %>% 
+  left_join(WaffleDivorce) %>% 
+  select(Location, pct_mormon, Divorce, Marriage, MedianAgeMarriage)
+
+head(dwaf2)
+
+hist(dwaf2$pct_mormon)
+
+hist(1/sqrt(dwaf2$pct_mormon))
+
+hist(standardize(1/sqrt(dwaf2$pct_mormon)))
+```
+
+Using an *inverse-square-root transformation* works ok.   
+  
+  
+
+Fit a model to the transformed data. 
+
+```{r}
+dwaf3 <- 
+  dwaf2 %>% 
+  drop_na() %>% 
+  mutate(D = standardize(Divorce),
+         M = standardize(Marriage),
+         A = standardize(MedianAgeMarriage),
+         PCTM = standardize(1/sqrt(pct_mormon))) #--seems better than nothing
+
+mor_mod <- 
+  quap(
+    alist(
+      D ~ dnorm(mu, sigma),
+      mu <- a + bM*M + bA*A + bPCTM*PCTM,
+      a ~ dnorm(0, 0.2),
+      bM ~ dnorm(0, 0.5),
+    bA ~ dnorm(0, 0.5),
+    bPCTM ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+    ), data = dwaf3)
+      
+
+precis(mor_mod) %>% 
+  as_tibble() %>% 
+  mutate(parm = c("a", "bM", "bA", "bPCTM", "sigma")) %>% 
+  filter(grepl("b", parm)) %>% 
+  ggplot(aes(parm, mean)) + 
+  geom_segment(aes(y = `5.5%`, yend = `94.5%`, xend = parm)) + 
+  geom_point(size = 4, color = "red") + 
+  coord_flip() + 
+  geom_hline(yintercept = 0) 
+
+```
+
+Apparently only *age* matters still? The percent mormon adds no information?
+```{r}
+
+dwaf <- 
+  WaffleDivorce %>% 
+  mutate(D = standardize(Divorce),
+         M = standardize(Marriage),
+         A = standardize(MedianAgeMarriage)
+  )
+
+m5.3 <- 
+  quap(
+    alist(
+      D ~ dnorm(mu, sigma),
+      mu <- a + bM*M + bA*A,
+      a ~ dnorm(0, 0.2),
+      bM ~ dnorm(0, 0.5),
+    bA ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+    ), data = dwaf)
+      
+plot(coeftab(m5.3))
+```
+
+The age estimate didn't change at all. *Am I doing this right?*
