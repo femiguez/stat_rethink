@@ -19,3 +19,9 @@ This is the idea that while there is no underlying relationship between two vari
 
 ## Post-treatment bias
 
+**Omitted Variable Bias** Not including an important variable
+
+**Included Variable Bias** Including variables that should not be included? 
+
+> Blindly tossing variables into the causal salad is never a good idea.
+
