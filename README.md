@@ -35,5 +35,7 @@ Notes
 
 [Chapter 6: Mariana Notes](https://femiguez.github.io/stat_rethink/notes/chapter_06/Stat-rethink_Chap6_mariana.html)
 
+[Chapter 6: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_06/Practice_Chapter6.html)
+
 
 
