@@ -33,5 +33,7 @@ Notes
 
 [Chapter 6: The Haunted DAG](https://femiguez.github.io/stat_rethink/notes/chapter_06/ch_06_The_Haunted_DAG.html)
 
+[Chapter 6: Mariana Notes](https://femiguez.github.io/stat_rethink/notes/chapter_06/Stat-rethink_Chap6_mariana.html)
+
 
 
