@@ -1,0 +1,61 @@
+---
+title: "Chapter 6 Stat Rethink Practice"
+author: "Anabelle Laurent"
+date: "6/28/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(rstan)
+```
+
+Multicollinearity = very strong association between two or more predictor variables. The consequence is that the posterior distribution will seem to suggest that none of these vrariables is reliably associated with the outcome.  
+
+Omitted variable bias = omit predictor variables. BUT included variable bias is real.  
+
+## E1  
+multicollinearity  
+post-treatment bias  
+included variable bias  
+
+## E2  
+Example from a study looking at the effect of a soil insecticide against corn rootworn nematode. We have 2 treatments and during the experiement, the number of eggs on corn root were calculated. This is a post-treatment variable.  
+
+## E3  
+The four elemental confounds are the fork, the pipe, the collider and the descendant  
+
+The fork is Z is a common cause of X and Y so a correlation betwen happened. X and Y are independant.  
+Example: drinking alcohol has an impact on your health and efficience to focus at work.  
+
+The pipe = X->Z->Y  
+Example: narrow row spacing -> humidity -> fungus  
+
+The collider = X->Z<-Y  
+Example: number of sunny day -> crop yield <- plowing  
+
+The descendant: like the collider but Z is a cause of D. D has some information about Z  
+
+## E4
+
+Statistical association between sunny day and plowing
+
+
+## M1
+
+```{r}
+library(dagitty)
+dag_6.1 <- dagitty( "dag {
+    U [unobserved]
+    V [unobserved]
+    X -> Y
+    X <- U <- A -> C -> Y
+    U -> B <- C
+    C <- V -> Y
+}")
+adjustmentSets( dag_6.1 , exposure="X" , outcome="Y" )
+
+```
+

@@ -51,4 +51,22 @@ One technique that he uses again here is to simulate data from the prior distrib
 
 > There is no inference without assumption
 
+DAGs are introduced as a tool to think more clearly about association and causation. A particular interesting comment is made about the fact that variables can be correlated (or associated), but they are clearly not causal. 
+
+### Plotting Multivariate Posteriors
+
+* Predictor Residual Plots: (page 136) allow us to understand the relationship amobg variables when conditioning on other variables. 
+
+* Posterior Prediction Plots: (page 138) when a graph of observed vs. predicted shows a close agreement we usually judged the model as having a good fit. Note: usually we should make this graph as obseved on the y-axis and predicted on the x-axis.
+
+> Models are useful fictions. So they always fail in some way.
+
+I think it is important to keep in mind that this is essentially a creative process and this is when statistics becomes more of an art than strict engineering. It is very difficult to perform good model criticisms without a good understanding of the science (subject matter expertise).
+
+> Usually answers to large world questions about truth and causation depend on information not included in the model.
+
+* Counterfactual Plots
+
+
+
 

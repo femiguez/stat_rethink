@@ -1,0 +1,29 @@
+---
+title: "The Haunted DAG & The Causal Terror"
+author: "Fernando Miguez"
+date: "7/8/2020"
+output: html_document
+---
+
+# The Haunted DAG & The Causal Terror
+
+**Berksons Paradox** (or the selection-distortion effect). 
+
+This is the idea that while there is no underlying relationship between two variables, one can arise when selecting a subset of the data based on some criteria. I think in the context of the theme of the book and in this chapter this is important because a main topic is related to whether we can sort out merely associations, correlations and spurious relationships from actual real causes and effects. We can never really be certain about cause and effect, but we can accumulate evidence.
+
+**Multicollinearity** I have read about multicollinearity in several regression books, but the author (as he often does) tries extra hard to explain the underlying issues and non-issues. He points out that while we are not able to distinguish the relative contribution of the parameters associated with colinear variables, the predictions from the model should still be okay. Regardless of multicollinearity, it is always a good idea to check the standard errors associated with model parameters. If they are really high; there might be something wrong.
+
+> Multicollinearity is the least of your worries. The problem is with the question.
+
+**Non-identifiability** when a parameter is non-identifiable, it means that the structure of the data and the model do not make it possible to estimate the parameter's value. **Note**: This is much more of a concern when using complex models such as the agro-ecosystem models we use (APSIM, Agro-IBIS, etc.). In these models we might want to treat an unknown as a parameter, but, in reality, we might not have appropriate data which allows us to constrain these parameters. In a Bayesian framework, the prior will have to do all the work in these cases or, typically, we fix these values based on some other knowledge.
+
+## Post-treatment bias
+
+**Omitted Variable Bias** Not including an important variable
+
+**Included Variable Bias** Including variables that should not be included? 
+
+> Blindly tossing variables into the causal salad is never a good idea.
+
+
+

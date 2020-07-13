@@ -1,0 +1,500 @@
+---
+title: "Stat_rethink Chapter 6"
+author: "Mariana CHiozza"
+date: "7/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The Haunted DAG and The Causal Terror
+
+Berkson's Paradox or the selection-distortion effect: Strong selection induces a negative correlation among the criteria used in selection.
+
+Adding a predictor to a multiple regression model induces statistical selection within the model = COLLIDER BIAS.
+
+
+
+
+## Multicollinearity
+
+```{r}
+library(rethinking)
+data(milk)
+d=milk
+
+d$k<-standardize(d$kcal.per.g)
+d$f<-standardize(d$perc.fat)
+d$l<-standardize(d$perc.lactose)
+
+## Modeling total energy in milk. The two variables (fat and lactose) separately showed to be strongly associated with the outcome. One is negative (mean= -0.9) and the other is positive (mea=0.86). The conclusion would be that both variables are good predictors. BUT, what would be the variable importance if we include both variables in the same regression model?
+
+m6.5<- quap(
+  alist(
+    k~dnorm(mu, sigma),
+    mu <- a + bf*f + bl*l,
+    a~dnorm(0, 0.2),
+    bf~dnorm(0,0.5),
+    bl~dnorm(0,0.5),
+    sigma~dexp(1)
+  ),
+data=d )
+
+precis(m6.5)
+
+# Both variables means are close to zero, meaning that these two variables contain much of the same information.
+
+pairs(~kcal.per.g + perc.fat + perc.lactose , data=d, col=rangi2)
+
+# In the graph we can see how perc.fat and perc.lactose are negatively correlated (right-middle plot), so they are redundant.
+
+```
+
+
+```{r}
+# Just checking if the order change the results.....
+
+m6.5bis<- quap(
+  alist(
+    k~dnorm(mu, sigma),
+    mu <- a + bl*l + bf*f,
+    a~dnorm(0, 0.2),
+    bl~dnorm(0,0.5),
+    bf~dnorm(0,0.5),
+    sigma~dexp(1)
+  ),
+data=d )
+
+precis(m6.5bis)
+
+plot(coeftab(m6.5, m6.5bis))
+```
+
+
+## Post treatment bias
+
+Omitted variable bias (bad predictions due to the omission of a variable) vs Included variable bias (bad predictions due to the inclusion of a variable). 
+
+Example: final height of plants when growing under different soil treatments. The presence of fungus after treatment is considered a variable. But, it shouldn't be considered because it is a post=treatment effect. This post-treatment effect may mask the causal influence of the treatment on height.
+
+### A prior is born
+
+Construct the model based on previous scientific information
+
+### Blocked by consequence
+
+Fungus is a consequence of treatment.
+
+
+### Fungus a directional separation
+
+d-separation means that some variables on a directed graph are independent of others.
+
+```{r}
+library(dagitty)
+plant_dag<- dagitty ("dag {
+                     H_0-> H_1
+                     F-> H_1
+                     T-> F
+                     }")
+
+coordinates(plant_dag)<-list(x=c(H_0=0, T=2, F=1.5, H_1=1) , 
+                             y=c(H_0=0, T=0, F=0, H_1=0) )
+
+drawdag(plant_dag)
+
+
+```
+
+
+When F is included, the path from T to H1 is blocked. Learning the treatment tell us nothing about the outcome, once we know the fungus.
+
+Or.....conditioning on F induces d-separation, makes T and H1 independent. There is no information in T about H1 that is not also in F.
+
+```{r}
+impliedConditionalIndependencies(plant_dag)
+```
+
+The original plant height should not be associated with T of F, provided we do not condition on anything (the first two conditional independencies).
+
+
+## Collider bias
+
+When a new variable is included which creates an association between the others, but not necessarily causal.
+
+Example: Happiness (H) and age (A) both cause marriage (M). Marriage is a collider. There is no causal association between H and A, but including M as predictor will induce a statistical association between H and A. THe wrong conclusion would be that H changes with A, when actually it doesn't.
+
+Collider bias arises frin conditioning on a common consequence.
+
+Unmeasured causes can still induce collider bias.
+
+Example: Infuence of parents (P) and grandparents (G) on the education of children (C). Unmeasure common influence on P and C is the neighborhood (U). 
+
+If we graph G (horizontal) on C (vertical) we can find a possitive association for good and bad neighborhoods separately, even when the direct effect of G on C is zero. This association is given through the influence of P on C.
+But, if we do not consider neighborhoods, a negative association arises from regresing G on C.
+
+SIMPSON'S PARADOX
+
+
+## Confronting confounding
+
+Blocking confounding paths is known as "shutting the backdoor".
+
+Which paths we need to block? There are only four types of relations between the variables to form all posible paths:
+
+1) Fork
+
+2) Pipe
+
+3) Collider
+
+4) Descendant
+
+### PRACTICE
+
+## 6E1.
+
+- Multicollinearity
+
+- Post-treatment bias
+
+- Collider bias
+
+## 6E2.
+
+Hyperspectral bands from the whole spectrum are often used as predictors of different crop variables, like LAI or yield. These bands used to be associated between each other.
+
+
+## 6E3.
+
+The four elemental confounds are:
+
+1) Fork: X <- Z -> Y
+
+Z is a common cause of X and Y. 
+
+X and Y are independent conditioning on Z.
+
+2) Pipe: X -> Z -> Y
+
+Conditioning on Z blocks the path from X to Y.
+
+3) Collider: X -> Z <- Y
+
+There is no assiciation betwee X and Y, unless conditioning on Z.
+
+Conditioning on Z open the path.
+
+4) Descendant: X -> Z <- Y
+
+               X -> Z -> D
+              
+Conditioning on D will also condition on Z.
+
+D has information about Z. This is a common example of using a proxy (D) as a measure of a variable (Z).
+
+
+## 6E4.
+
+A bias sample will produce an association between two variables when in fact there is no association but a consequence of conditioning on that variable. Example on pag. 162.
+
+## 6M1.
+
+```{r}
+library(dagitty)
+dag_6.1bis<-dagitty("dag {
+                    U [unobserved]
+                    V [unobserved]
+                    X -> Y
+                    X <- U <- A -> C <- V -> Y
+                    U -> B <- C
+                    }")
+drawdag(dag_6.1bis)
+
+adjustmentSets(dag_6.1bis, exposure = "X" , outcome = "Y")
+
+
+```
+
+All posible paths:
+
+X -> Y
+
+X <- U <- A -> C <- V -> Y
+
+X <- U -> B <- C <- V -> Y
+
+
+
+## 6M2.
+
+```{r}
+N<-100
+set.seed(909)
+Y <-rnorm(N, 10, 2)
+prop <- runif (N, 0.2,0.8)
+Z <- prop*Y + rnorm (N, 0, 0.02)
+X <- prop*Y + rnorm (N, 0, 0.02)
+
+d <- data.frame(Y, Z, X)
+
+plot(X, Z)
+plot (X, Y)
+plot (Z, Y)
+
+```
+
+
+```{r}
+m_6M2 <-quap(
+  alist (
+    Y ~ dnorm (mu, sigma),
+    mu <- a + bX*X + bZ*Z,
+    a ~ dnorm(10, 100),
+    bX ~ dnorm(2, 10),
+    bZ ~ dnorm(2, 10),
+    sigma ~ dexp(1)
+  ) , data=d)
+
+precis(m_6M2)
+
+post<- extract.samples(m_6M2)
+plot(bX~bZ, post, col=col.alpha(rangi2, 0.1) , pch=16)
+```
+
+
+
+## 6M3.
+```{r}
+library(dagitty)
+dag_6M3_1 <- dagitty("dag {
+                     X -> Y
+                     X <- Z <- A -> Y
+                     X <- Z -> Y
+                     }")
+drawdag(dag_6M3_1)
+adjustmentSets(dag_6M3_1, exposure = "X" , outcome = "Y")
+```
+```{r}
+dag_6M3_2 <- dagitty("dag {
+                     X -> Y
+                     X -> Z <- A -> Y
+                     X -> Z -> Y
+}")
+drawdag(dag_6M3_2)
+adjustmentSets(dag_6M3_2, exposure = "X" , outcome = "Y")
+```
+
+
+
+
+
+```{r}
+dag_6M3_3 <- dagitty("dag {
+                     X -> Y
+                     X <- A -> Z <- Y
+                     X -> Z <- Y
+                     }")
+drawdag(dag_6M3_3)
+adjustmentSets(dag_6M3_3, exposure = "X" , outcome = "Y")
+```
+
+
+
+
+
+```{r}
+dag_6M3_4 <- dagitty("dag {
+                     X -> Y
+                     X <- A -> Z -> Y
+                     X -> Z -> Y
+                     }")
+drawdag(dag_6M3_4)
+adjustmentSets(dag_6M3_4, exposure = "X" , outcome = "Y")
+```
+
+
+
+
+
+## 6H1 and 6H2.
+
+```{r}
+data("WaffleDivorce")
+wd<-WaffleDivorce
+
+# Proportion of slaves in 1860 (PS) is influenced by the Populaiton in 1860 (P) and the number of slaves in 1860 (S). 
+# THe number of slaves (S) influences the Median Age at marriage (A) (slaves marry earlier) and also influences the number of waffle houses (W) directly (usually employees of waffle houses are slaves descendant).
+# Median Age of marriage (A) influences the divorce rate (D) (marriage early in life tend to be unsuccesful).
+# The number of waffle houses (W) are also influenced by the proportion of people who who prefer to go to a waffle house instead of staying home with their spouses (unobserved variable=U).
+
+wd$D<- wd$Divorce
+wd$A<- wd$MedianAgeMarriage
+wd$W<-wd$WaffleHouses
+wd$S<-wd$Slaves1860
+wd$P<-wd$Population1860
+wd$PS<-wd$PropSlaves1860
+
+
+dag_6H1 <- dagitty("dag {
+                     U [unobserved] 
+                     W -> U -> D
+                     W <- PS -> A -> D
+                     W <- PS <- P
+                     W <- PS <- S
+                     }")
+
+drawdag(dag_6H1)
+
+adjustmentSets(dag_6H1, exposure = "W" , outcome = "D")
+
+impliedConditionalIndependencies(dag_6H1)
+
+
+```
+
+
+
+We can eliminate P and S if we include PS
+
+
+
+
+```{r}
+dag_6H1_bis <- dagitty("dag {
+                     U [unobserved] 
+                     W -> U -> D
+                     W <- PS -> A -> D
+                     }")
+
+drawdag(dag_6H1_bis)
+
+adjustmentSets(dag_6H1_bis, exposure = "W" , outcome = "D")
+
+impliedConditionalIndependencies(dag_6H1_bis)
+
+```
+
+
+
+## 6H3, 6H4 and 6H5.
+
+
+
+```{r}
+data("foxes")
+f<-foxes
+
+f$D <- standardize(f$avgfood)
+f$S <- standardize(f$groupsize)
+f$A <- standardize(f$area)
+f$W <- standardize(f$weight)
+
+b_AD <- 0.5 # effect of area in food
+b_SW <- 1 # effect of group size on weight
+b_D <- 2 #effect of food on group size and on weight. D is a collider.
+
+
+# PRIOR PREDICTIVE SIMULATION????
+
+mH3 <- quap(
+  alist(
+    W ~ dnorm (mu, sigma),
+    mu <- a + b_AW*A ,
+    a ~ dnorm (0, 1),
+    b_AW ~ dnorm (0, 1),
+    sigma~ dexp(1)
+  ), data=f
+)
+
+precis(mH3)
+```
+
+
+
+
+
+```{r}
+mH4 <- quap(
+  alist(
+    W ~ dnorm (mu, sigma),
+    mu <- a + b_AW*A + b_DA*D,
+    a ~ dnorm (0, 1),
+    b_AW ~ dnorm (0, 1),
+    b_DA ~ dnorm (0, 1),
+    sigma~ dexp(1)
+  ), data=f
+)
+
+precis(mH4)
+```
+
+
+
+
+```{r}
+mH5 <- quap(
+  alist(
+    W ~ dnorm (mu, sigma),
+    mu <- a + b_AD*A + b_SW*S + b_D*D,
+    a ~ dnorm (0, 1),
+    c (b_AD, b_SW, b_D) ~ dnorm (0, 1),
+    sigma~ dexp(1)
+  ), data=f
+)
+
+precis(mH5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'
+
