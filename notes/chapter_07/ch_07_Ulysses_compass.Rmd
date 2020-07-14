@@ -1,0 +1,16 @@
+---
+title: "Ulysses' compass"
+author: "Fernando Miguez"
+date: "7/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ulysses' compass
+
+As mentioned by Gina, I recommend watching the lectures on Youtube
+
+https://github.com/rmcelreath/statrethinking_winter2019
