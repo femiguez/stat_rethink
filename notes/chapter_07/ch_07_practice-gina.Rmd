@@ -1,0 +1,59 @@
+---
+title: "Ulysses' Compass"
+author: "Gina Nichols"
+date: "7/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(rethinking)
+```
+
+# Chapter 7 Practice
+
+
+## 7E1.
+
+*Three motivating criteria defining information entropy*
+
+1. We want our metric to be continuous. 
+2. It should have a higher value when there are more possible events. 
+3. We want the calculation of it to be symmetrical. ie It shouldn't matter how we break down the event combinations, they should always add up to the same value. 
+
+## 7E2. 
+```{r}
+p2 <- c(0.7, 0.3)
+round(-sum(log(p2)*p2), 2)
+```
+
+Entropy is `r round(-sum(log(p2)*p2), 2)`
+
+## 7E3. 
+```{r}
+p3 <- c(0.2, 0.25, 0.25, 0.3)
+round(-sum(log(p3)*p3), 2)
+```
+
+Entropy is `r round(-sum(log(p3)*p3), 2)`
+
+## 7E4. 
+```{r}
+p4 <- c(1/3, 1/3, 1/3)
+round(-sum(log(p4)*p4), 2)
+```
+
+Entropy is `r round(-sum(log(p4)*p4), 2)`
+
+## 7M1. 
+
+$AIC = D_{train} + 2p = -2lppd + 2p$
+$WAIC = -2lppd + 2\sum var_{\theta}\log p(y_i|\theta)$
+
+It seems like the penalty term is the only difference. Instad of just the number of parameters $p$ in $AIC$, we have 
+
+Log-posterior-predictive-density.
+The log of the average probability for each observation...?
+
+
