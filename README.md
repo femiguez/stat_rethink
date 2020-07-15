@@ -39,5 +39,7 @@ Notes
 
 [Chapter 7: Ulysses Compass](https://femiguez.github.io/stat_rethink/notes/chapter_07/ch_07_Ulysses_compass.html)
 
+[Chapter 7: Anabelle Notes](https://femiguez.github.io/stat_rethink/notes/chapter_07/Practice_Chapter7_Anabelle.html)
+
 
 
