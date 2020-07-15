@@ -37,5 +37,7 @@ Notes
 
 [Chapter 6: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_06/Practice_Chapter6.html)
 
+[Chapter 6: Ulysses Compass](https://femiguez.github.io/stat_rethink/notes/chapter_07/ch_07_Ulysses_compass.html)
+
 
 
