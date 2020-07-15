@@ -51,8 +51,9 @@ Entropy is `r round(-sum(log(p4)*p4), 2)`
 $AIC = D_{train} + 2p = -2lppd + 2p$
 $WAIC = -2lppd + 2\sum var_{\theta}\log p(y_i|\theta)$
 
-It seems like the penalty term is the only difference. Instad of just the number of parameters $p$ in $AIC$, we have 
+It seems like the penalty term is the only difference. Instad of just the number of parameters $p$ in $AIC$, we have an "effective" number of parameters. 
 
+I don't quite understand what the *lppd* is. 
 Log-posterior-predictive-density.
 The log of the average probability for each observation...?
 
