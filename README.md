@@ -41,5 +41,7 @@ Notes
 
 [Chapter 7: Anabelle Notes](https://femiguez.github.io/stat_rethink/notes/chapter_07/Practice_Chapter7_Anabelle.html)
 
+[Chapter 7: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_07/ch_07_practice-gina.html)
+
 
 
