@@ -1,0 +1,35 @@
+---
+title: "Chapter 7 Stat Rethink Practice"
+author: "Anabelle Laurent"
+date: "7/13/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+```
+
+Kinds of statistical error:  
+*overfitting* = learning too much from the data leads to poor prediction  
+*underfitting* = learning too little from the data leads to poor prediction  
+*confounding*  
+
+*regularizing prior* to tell the model to not get too excited by the data  
+*information criteria* or *cross-validation* to estimate predictive accuracy  
+
+R^2 is a measure of fit to sample and the more predictor variables, the higher (this is not good!).  
+With overfit, the prediction can be worse than a simple model, especially if future data are not like past data. 
+
+
+IN sample, the most sceptical priors do worst because they learn less from the data, indeed it's sceptical! (deviance is higher than a flat prior).  
+OUT of sample, the most sceptical priors predict best because it ignores irregular distractions from the sample (the deviance is smaller than a flat prior).  
+If too sceptical, you learn nothing from the sample (it's bad) but some scepticism helps you for better prediction (you can always fo better than a flat prior). 
+The regularization is useful when you don't have enough data. For multi-level, regularization is useful.  
+
+How to estimate out-of-sample deviance?  
+- cross-validation: leave out some observations, one at a time so it's time consuming  
+- information criteria: AIC  
+
+

@@ -14,3 +14,48 @@ knitr::opts_chunk$set(echo = TRUE)
 As mentioned by Gina, I recommend watching the lectures on Youtube
 
 https://github.com/rmcelreath/statrethinking_winter2019
+
+> Models with fewer assumptions are to be preferred
+
+> Simpler is better
+
+The metafor of Ulysses compass is related to his navigation. Ulysses was trying to avoid the many-headed beast Scylla and the sea monster Charybdis. We should also try to avoid, when we fit models, the beast of overfitting and the monster of underfitting.
+
+**Overfitting**: learns too much from the data
+**Underfitting**: learns too little from the data
+
+Both of them lead to inferior predictions compared to the "Goldilocks" model.
+
+There is another mention here about the different goals of **Inference** and **Prediction**.
+
+1. **Regularizing priors**: have a relatively strong effect on the outcome. It results in *skeptical* models. A lot of data is needed to persuade the model that nature is different from what the model expects.
+
+2. **Information criteria**: easy to implement and hard to understand. The main purpose is to be able to compare models fitted to the same data. Models with higher IC should be better at prediction, but it implies nothing about cause and effect.
+
+3. **Cross-Validation**: using part of the data for fitting and leaving some for prediction. CV should result in models that avoid under- and over-fitting. It can be approximated without having to re-fit the model many, many times.
+
+**Bias-Variance trade-off**: *Bias* is related to underfitting, while *Variance* is related to overfitting.
+
+## Entropy and Accuracy
+
+> What do you want the model to do well?
+
+### Information and uncertainty
+
+> The basic insight is to ask: How much is our uncertainty reduced by learning an outcome?
+
+**Information**: the reduction in uncertainty when we learn an outcome
+
+### Information Entropy
+
+The uncertainty contained in a probabbility distribution is the average log-probability of an event.
+
+$$
+H(p) = - E \, \log(p_i) = - \Sigma^n_{i = 1} \; p_i \log(p_i)
+$$
+
+### From Entropy to Accuracy
+
+**Divergence**: The additional uncertainty induced by using probabilities from one distribution to describe another distribution. 
+
+**Training Sample** and **Testing Sample**. 
