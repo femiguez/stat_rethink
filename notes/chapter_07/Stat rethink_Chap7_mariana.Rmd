@@ -1,0 +1,271 @@
+---
+title: "Stat_rethink Chapter 7"
+author: "Mariana CHiozza"
+date: "7/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ulysse's Compass
+
+Overfitting vs Underfitting
+
+p values of model coefficients do not help to navigate between overfotting or underfitting.
+
+
+## The problem with parameters
+
+R-squared increases as more predictors are added to the model, even when the predictors are random numbers.
+
+More complex models fit the data better but they predict new data worse.
+
+Simple models, with too few parameters, tend to underfit.
+
+
+### Overfitting
+
+
+```{r}
+sppnames<-c("afarensis", "africanus", "habilis", "boisei", "rudolfensis", "ergaster", "sapiens")
+brainvolcc<-c(438,452,612,521,752,871,1350)
+masskg<-c(37.0,35.5,34.5,41.5,55.5,61.0,53.5)
+d<- data.frame(species=sppnames, brain=brainvolcc, mass=masskg)
+
+plot(d$mass, d$brain)
+```
+
+
+Different models to relate body mass to brain size:
+
+
+```{r}
+d$mass_std<-(d$mass-mean(d$mass))/sd(d$mass) # mean zero and std=1
+d$brain_std<-d$brain/max(d$brain)            # the max value is 1 and the min is zero
+```
+
+
+Focusing in the R-squared, the proportion of variance "explained" by the model.
+
+If the model has the same number of parameters as the observations, you can get R-squared = 1 (within-sample accuracy). This is the case for the 6 degree polinomial model. But, the model will make absurd predictions (out-of-sample predictions). There is no data-compression. 
+
+
+### Too few parameters hurts, too!
+
+Underfitting produces models that are inaccurate both within and out of sample. 
+
+An underfit model is insensitive to the sample. Removing data will give as the same regression line.
+
+
+
+## Entropy and accuracy
+
+Cost-benefit analysis: How much does it cost when we are wrong? We can measure the rate of correct prediction or consider cost and benefits of choosing one model over others.
+
+Measuring accuracy: What is the probability of getting the correct model?
+
+Average probability vs joint probability (joint probability is the likelihood in Bayes' theorem so it is the measure we want to know)
+
+LOG SCORING RULE: logarithm of the joint probability.
+
+How to measure distance from perfect prediction?
+
+How much is our uncertainty reduced by learning an outcome? This is the definition of INFORMATION.
+
+We need to quantify the uncertainty.
+
+Uncertainty requirements:
+
+1) Should be continuous, any change in probability of an event should not cause a big change in uncertainty.
+
+2) Shoud increase as the number of events increases
+
+3) Should be additive, the uncertainty of a combination of events (for example, rain/hot, rain/cold, etc) should be the sum of the separate uncertainties.
+
+
+
+The uncertainty in a probability distribution is the average log-probability of an event. 
+
+Equation H(p), pag 206. INFORMATION ENTROPY (a measure of uncertainty inherent in a distribution of events): 
+
+
+H(p)= - E*log(pi) = - (sum (pi*log(pi)))
+Divergence 
+
+where E is the expected value (?); sum is the addition of all posible events; pi is the probability of each event and p the list of probabilities.
+
+Now, how can we use Information Entropy to know how far the model is from the target.
+
+DIVERGENCE: Additional uncertainty induced by using probabilities from one distribution to describe another distribution.
+
+
+Divergence is then the average difference in log probabilities between the target (p) and the model (q).
+
+Divergence could be used to choose a candidate distribution between a pair of distributions. The distribution that minimizes the divergence will be the selected distribution because it will be the closest to the target. Therefore, divergence could be use to compare accuracy of models.
+
+There is a score (S, log-probabilty score) that it is used to compare the predictive accuracy of different models.
+
+S(q) = sum (log(qi)) # qi is the probability we assume for an event in the model.
+
+We need to compute this score for the entire posterior distribution (package = rethinking, fucntion = lppd).
+
+
+
+Using lppd one value for each observation will be obtained. Adding all values together will give us the total score for the model. Larger values are better.
+
+DEVIANCE is lppd multiplied by -2. So, smaller values are better.
+
+
+
+## Golem taming: Regularization
+
+Flat priors mean that every parameter is equally plausible. Therefore, the model is overexcited and there is overfitting.
+
+One way to solve this is to use priors that slows the rate of learning from the sample (Skeptical Priors).
+
+The most common skeptical prior is a REGULARIZING PRIOR.
+
+
+## Predicting predictive accuracy
+
+Out of sample evaluation of the model. How well the model will be in predicting new data.
+
+
+### Cross-validation
+
+Since LOOCV (leave one out cross-validation) could have a lot of observations, same techniques are used to discriminate between observarions that are important. Importance is defined as how unlikely is that observation. Unlikely observations are more important that the expected ones.
+
+
+PSIS (Pareto smoothed importance sampling) uses the weights to select the importance of observation to be included in cross-validation.
+
+
+### Information criteria
+
+For OLR eith flat priors, the overfitting penalty is about twice the number of parameters.
+
+AIC (requires flat priors, the posterior distribution should be Gaussian, the sample size should be grater than the number of parameters)
+
+DIC: Idem AIC but do not requires flat priors.
+
+WAIC: Widely applicable information criterion. No assumption on the distribution of the posterior.
+
+It is pointwise. Prediction point by point.
+
+
+## Model Comparison
+
+- Regularizing priors
+
+- CV/PSIS/WAIC
+
+We can do MODEL SELECTION -choose the model with the lowest criterion-NEVER DO THIS. Beacuase it discards the relative model accuracy contained in the differences among the CV/PSIS/WAIC  values.
+
+Instead of model selection we should focus on MODEL COMPARISON.
+
+ROBUST REGRESSION:
+
+Use extreme observations (outliers) but reduce their influence. Replace Gaussian by Student's T distribution with thicker-tails.
+
+
+## PRACTICE
+
+### 7E1.
+
+Information theory tells us about how much the uncertainty could be reduced by learning an outcome. We need to measure uncertainty, then. And that measure should have some properties: 
+
+1) the measure of uncertainty should be continuous. So that small changes in the probability of any of the events do not generate a big change in uncertainty.  
+
+2) the measure of uncertainty should increase as the number of posible events increases. Adding events probabilities will do the uncertainty also increase. 
+
+3) the measure of uncertainty should be additive. The uncertainties of all combinations of events should be added in order to represent the total uncertainty.
+
+
+### 7E2.
+
+```{r}
+p<-c(0.3, 0.7)
+-sum(p*log(p))
+```
+
+### 7E3.
+
+```{r}
+p<-c(0.20, 0.25, 0.25, 0.30) 
+-sum(p*log(p))
+
+```
+
+
+### 7E4.
+
+```{r}
+p<-c(0.333333, 0.333333, 0.333333) 
+-sum(p*log(p))
+```
+
+
+### 7M1.
+
+AIC (Akaike information criterion)= Provides an estimate of the average out-of-sample deviance. The dimension of the posterior distribution is a measure of overfitting.
+
+WAIC (widely applicable information criterion). Out-of-sample deviance converges to cross-validation in a large sample. THe WAIC is the log-posterior-predictive density (lppd) plus a penalty term that account for the variance in the posterior predictions.
+
+WAIC is more general, makes no assumption about the shape of the distribution of the posterior. 
+
+A Gaussian shape should be considered for making a less general criterion, in addition to flat priors and the sample size greater than the number of parameters. DIC (deviance information criterion) consider informative priors but still relies on the Gaussian distribution of the posterior and the sample size greater than the n parameters.
+
+
+### 7M2.
+
+MODEL SELECTION:
+
+Model selection is based on choosing the model with the lowest criterion.
+
+Model selection discard the information about relative model accuracy. Relative model accuracy could be determined as the difference between WAIC/CV/PSIS values.
+
+Also, model selection do not consider inferring causation.
+
+
+MODEL COMPARISON:
+
+Model comparison uses multiple models to understand both how variables influence predictions and how implied conditional independencies help us infer causal relationships. 
+
+Model comparison is then based on the relative model accuracy contained in the differences among the CV/PSIS/WAIC  values.
+
+
+### 7M3.
+
+
+### 7M4.
+
+For the test set and when the sample size is small, concentrating the priors will not produce an increase in deviance as the number of parameters increase (Fig 7.8, pag 216). 
+
+For the training set  
+
+
+
+### 7M5.
+
+Regularizing (making informative priors) improves predictive accuracy because it reduces overfitting, although it reduces also the fit to sample.
+
+When the priors are flat, the machine interprets that all parameter values are equally plausible.
+
+The use of SKEPTICAL PRIORS will slow the rate of learning from the sample and then reduce overfitting.
+
+These priors should be properly tuned to reduce overfitting. Because, being too skeptical could result in underditting.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
