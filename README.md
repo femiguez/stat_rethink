@@ -43,5 +43,7 @@ Notes
 
 [Chapter 7: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_07/ch_07_practice-gina.html)
 
+[Chapter 7: Mariana Notes](https://femiguez.github.io/stat_rethink/notes/chapter_07/Stat-rethink_Chap7_mariana.html)
+
 
 
