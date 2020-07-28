@@ -286,4 +286,121 @@ m8.5 <- quap(
 
 # how to plot interactions ------------------------------------------------
 
+#--just start with shade = -1
+
+ds1 <- dt %>%
+  select(water_cent, shade_cent) %>%
+  filter(shade_cent == 0)
+
+mu_s1 <- link(m8.5, data = data.frame(ds1))
+
+mu_mu_s1 <- apply(mu_s1, 2, mean)
+mu_pi_s1 <- apply(mu_s1, 2, PI)
+
+ggplot() + 
+  geom_point(data = dt, aes(x = water_cent, y = blooms_std)) + 
+  geom_line(aes(x = ds1$water_cent, y = mu_mu_s1), color = "red") + 
+  geom_ribbon(aes(x = ds1$water_cent, ymin = mu_pi_s1[1,], ymax = mu_pi_s1[2,]), alpha = 0.2) + 
+  labs(title = "shade = 0")
+
+#--create a fucntion
+
+
+my_shade_fun <- function(mymodel = m8.5, myshade = -1, mydata = dt) {
+  ds1 <- dt %>%
+    select(water_cent, shade_cent) %>%
+    filter(shade_cent == myshade)
+  
+  mu_s1 <- link(mymodel, data = data.frame(ds1))
+  
+  mu_mu_s1 <- apply(mu_s1, 2, mean)
+  mu_pi_s1 <- apply(mu_s1, 2, PI)
+  
+  p1 <-
+    ggplot() +
+    geom_point(data = dt %>% filter(shade_cent == myshade),
+               aes(x = water_cent, y = blooms_std)) +
+    geom_line(aes(x = ds1$water_cent, y = mu_mu_s1), color = "red") +
+    geom_ribbon(aes(
+      x = ds1$water_cent,
+      ymin = mu_pi_s1[1, ],
+      ymax = mu_pi_s1[2, ]
+    ),
+    alpha = 0.2) +
+    scale_y_continuous(limits = c(0, 1)) +
+    labs(title = paste("shade =", myshade))
+
+}
+
+p1 <- my_shade_fun(mymodel = m8.4, myshade = -1)
+p2 <- my_shade_fun(mymodel = m8.4, myshade = 0)
+p3 <- my_shade_fun(mymodel = m8.4, myshade = 1)
+
+p4 <- my_shade_fun(myshade = -1)
+p5 <- my_shade_fun(myshade = 0)
+p6 <- my_shade_fun(myshade = 1)
+
+
+(p1 + p2 + p3) / (p4 + p5 + p6)
+
+
+#--create a fucntion for looking at priors
+
+#--practice
+
+myshade <- -1
+mymodel <- m8.5
+
+f_shade_priors <- function(mymodel = m8.5, myshade = -1, mydata = dt, mylines = 50){
+#--for the actual points on the graph
+ds1 <- dt %>%
+  select(water_cent, shade_cent, blooms_std) %>%
+  filter(shade_cent == myshade)
+
+prior <- extract.prior(mymodel)
+
+#--keep only 50 lines
+mu_s1 <- link(mymodel, post = prior, data = data.frame(shade_cent = myshade, water_cent = -1:1))[1:mylines,]
+
+p1 <- t(mu_s1) %>% 
+  as_tibble() %>% 
+  mutate(water_cent = c(-1, 0, 1)) %>% 
+  pivot_longer(-water_cent) %>% 
+  ggplot() +
+  geom_point(data = ds1,
+             aes(x = water_cent, y = blooms_std)) +
+  geom_line(aes(x = water_cent, y = value, group = name), color = "pink") +
+  labs(title = paste("shade =", myshade))
+
+print(p1)
+}
+
+f_shade_priors <- function(mymodel = m8.5, myshade = -1, mydata = dt) {
+  
+  ds1 <- dt %>%
+    select(water_cent, shade_cent) %>%
+    filter(shade_cent == myshade)
+  
+  prior <- extract.prior(mymodel)
+  
+  mu_s1 <- link(mymodel, post = prior, data = data.frame(ds1))
+  
+  mu_mu_s1 <- apply(mu_s1, 2, mean)
+  mu_pi_s1 <- apply(mu_s1, 2, PI)
+  
+  p1 <-
+    ggplot() +
+    geom_point(data = dt %>% filter(shade_cent == myshade),
+               aes(x = water_cent, y = blooms_std)) +
+    geom_line(aes(x = ds1$water_cent, y = mu_mu_s1), color = "red") +
+    geom_ribbon(aes(
+      x = ds1$water_cent,
+      ymin = mu_pi_s1[1, ],
+      ymax = mu_pi_s1[2, ]
+    ),
+    alpha = 0.2) +
+    scale_y_continuous(limits = c(0, 1)) +
+    labs(title = paste("shade =", myshade))
+  
+}
 

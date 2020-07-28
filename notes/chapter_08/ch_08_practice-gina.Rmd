@@ -1,0 +1,220 @@
+---
+title: "Those Poor Manatees"
+author: "Gina Nichols"
+date: "7/28/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(cowplot)
+library(emo)
+library(rethinking)
+theme_set(theme_bw())
+```
+
+# Easy
+
+## 8E1. 
+**Name a hypothetical 3rd variable that could lead to an interaction**
+- bread dough rising *FERNANDO THIS IS FOR YOU!* because of yeast could depend on the **temperature**
+- education leading to higher income, could depend on **your socio-economic status before your eduction**
+- gasoline makes a car go, could depend on *the status of the gas pedal*
+
+
+## 8E2. 
+**Which explanation invokes an interaction?**
+4 is the only one that doesn't, I think
+
+## 8E3
+$onion\ carmelization = \alpha + \beta_{heat}(Heat) + \beta_{mois}(Mois) + \beta_{heat,moist}(Heat)(Mois)$
+That's enough of that.
+
+# Medium
+
+## 8M1
+**Add temperature to the tulips (shade, water)**
+The main effects of shade and water, as well as their interaction, depend on the temperature. 
+
+## 8M2
+**What is an example of a masked relationship?**
+I'm struggling with these. 
+
+## 8M3
+**Invent a reression that makes bloom size 0 if the temperature is hot**
+$relative\_bloom\_size_i = (1 - Heatstress_i)(\alpha + \beta_{shade}(shade_i) + \beta_{water}(water_i) + \beta_{shade,water}(shade_i)(water_i)$
+
+## 8M4
+**Force water effect to be positive and shade effect to be negative.**
+Remember rlnorm can be used to force things to be positive (page 96). 
+
+
+```{r}
+data(tulips)  
+dt <- tulips %>% 
+  as_tibble() %>% 
+  mutate(blooms_std = blooms / max(blooms), #-don't standardize if 0 is meaninful. Like with ruggedness, only scale it
+         water_cent = water - mean(water),
+         shade_cent = shade - mean(shade))
+
+dt
+
+```
+
+
+Try original priors first:
+```{r normal priors tuplips}
+
+m_tul1 <- quap(
+  alist(
+    blooms_std <- dnorm(mu, sigma),
+    mu <- a + bw*water_cent + bs*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5, 0.25),
+    bw ~ dnorm(0, 0.25),
+    bs ~ dnorm(0, 0.25),
+    bws ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ), data = dt)
+
+```
+
+
+```{r tulip prior function, echo=F}
+
+f_shade_priors <- function(mymodel = m_tul1, mydata = dt, mylines = 50, mycolor = "pink"){
+
+prior <- extract.prior(mymodel)
+    
+  #shade = -1 ##################################################
+  #--for the actual points on the graph
+ds1 <- dt %>%
+  select(water_cent, shade_cent, blooms_std) %>%
+  filter(shade_cent == -1)
+
+#--keep only 50 lines
+mu_s1 <- link(mymodel, post = prior, data = data.frame(shade_cent = -1, water_cent = -1:1))[1:mylines,]
+
+p1 <- t(mu_s1) %>% 
+  as_tibble() %>% 
+  mutate(water_cent = c(-1, 0, 1)) %>% 
+  pivot_longer(-water_cent) %>% 
+  ggplot() +
+  geom_hline(yintercept = 1, linetype = "dashed") + 
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  geom_point(data = ds1,
+             aes(x = water_cent, y = blooms_std)) +
+  geom_line(aes(x = water_cent, y = value, group = name), color = mycolor) +
+  labs(title = "shade = -1")
+
+
+  #shade = 0 ##################################################
+  #--for the actual points on the graph
+ds2 <- dt %>%
+  select(water_cent, shade_cent, blooms_std) %>%
+  filter(shade_cent == 0)
+
+#--keep only 50 lines
+mu_s2 <- link(mymodel, post = prior, data = data.frame(shade_cent = 0, water_cent = -1:1))[1:mylines,]
+
+p2 <- t(mu_s2) %>% 
+  as_tibble() %>% 
+  mutate(water_cent = c(-1, 0, 1)) %>% 
+  pivot_longer(-water_cent) %>% 
+  ggplot() +
+  geom_hline(yintercept = 1, linetype = "dashed") + 
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  geom_point(data = ds2,
+             aes(x = water_cent, y = blooms_std)) +
+  geom_line(aes(x = water_cent, y = value, group = name), color = mycolor) +
+  labs(title = "shade = 0")
+
+
+  #shade = 1 ##################################################
+  #--for the actual points on the graph
+ds3 <- dt %>%
+  select(water_cent, shade_cent, blooms_std) %>%
+  filter(shade_cent == 1)
+
+#--keep only 50 lines
+mu_s3 <- link(mymodel, post = prior, data = data.frame(shade_cent = 1, water_cent = -1:1))[1:mylines,]
+
+p3 <- t(mu_s3) %>% 
+  as_tibble() %>% 
+  mutate(water_cent = c(-1, 0, 1)) %>% 
+  pivot_longer(-water_cent) %>% 
+  ggplot() +
+   geom_hline(yintercept = 1, linetype = "dashed") + 
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  geom_line(aes(x = water_cent, y = value, group = name), color = mycolor) +
+   geom_point(data = ds3,
+             aes(x = water_cent, y = blooms_std)) +
+  labs(title = "shade = 1")
+
+cowplot::plot_grid(p1, p2, p3, ncol = 3)
+
+}
+
+f_shade_priors()
+```
+
+Try adjusting priors. 
+First just make water thing positive:
+
+```{r tulip water pos}
+
+m_tul2 <- quap(
+  alist(
+    blooms_std <- dnorm(mu, sigma),
+    mu <- a + bw*water_cent + bs*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5, 0.25),
+    bw ~ dlnorm(0, 0.25), #--make this always positive
+    bs ~ dnorm(0, 0.25),
+    bws ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ), data = dt)
+
+f_shade_priors(mymodel = m_tul2, mycolor = "purple")
+```
+
+Oof those slopes are way to dramatic. Try restricting them:
+
+```{r tulip water pos2}
+
+m_tul2a <- quap(
+  alist(
+    blooms_std <- dnorm(mu, sigma),
+    mu <- a + bw*water_cent + bs*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5, 0.25),
+    bw ~ dlnorm(0, 0.001), #--make this always positive, smaller range?
+    bs ~ dnorm(0, 0.25),
+    bws ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ), data = dt)
+
+f_shade_priors(mymodel = m_tul2a, mycolor = "purple")
+```
+
+Maybe it has to be in tandem with the shade being negative. 
+
+
+First water positive and shade negative try #1:
+
+```{r tulip wat pos shade neg}
+
+m_tul3 <- quap(
+  alist(
+    blooms_std <- dnorm(mu, sigma),
+    mu <- a + bw*water_cent - bs*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5, 0.25),
+    bw ~ dlnorm(0, 0.25), #--make this always positive
+    bs ~ dlnorm(0, 0.25), #--make this always pos, but it's subtracted (?)
+    bws ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ), data = dt)
+
+f_shade_priors(mymodel = m_tul3, mycolor = "dodgerblue")
+```
+
+# HELP `r emo::ji("sweat")`
