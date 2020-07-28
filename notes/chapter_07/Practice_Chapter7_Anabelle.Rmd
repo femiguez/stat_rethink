@@ -29,7 +29,195 @@ If too sceptical, you learn nothing from the sample (it's bad) but some sceptici
 The regularization is useful when you don't have enough data. For multi-level, regularization is useful.  
 
 How to estimate out-of-sample deviance?  
-- cross-validation: leave out some observations, one at a time so it's time consuming  
+- cross-validation: leave out one or some observations (called a fold), one at a time so it's time consuming  
 - information criteria: AIC  
+- WAIC: widely applicable information criterion
+
+Deviance = general term (like Residual Sum of Squares)  
+Divergence = additonal uncertainty induced by using probabilities from one distribution to describe another distribution, not reported by softwares. It can help you to compare models.  
+WAIC more appropriate for Bayesian  
+AIC is not appropriate for informative priors.  
+
+With large samples LOOIC,LOOCV, and WAIC perfom the same. When they disagree it means there is some highly influencial observations and there is something going on in the fit.  
+
+### Practice
+
+## E.1
+3 criteria that define information entropy (E):  
+- the measure should be continuous  
+- E increase as the number of possible events increases  
+- E should be additive.
+
+## E.2
+```{r}
+p<-c(0.3,0.7)
+-sum(p*log(p))
+```
+## E.3
+```{r}
+p<-c(0.2,0.25,0.25,0.3)
+-sum(p*log(p))
+```
+## E.4
+```{r}
+p<-c(1/3,1/3,1/3)
+-sum(p*log(p))
+```
+## M.1
+AIC = D_train + 2p
+WAIC = -2(lppd + p_WAIC)  
+
+AIC is not appropriate for informative priors while WAIC is more general and does not assume a Gaussian distribution. We need to assume gaussian distribution to transform the most general criterion into a less general one.  
+
+## M.2 
+Model selection = choosing the model with the lowest criterion (such as AIC, WAIC, BIC)  
+Model comparison = understand how variables influence predictions, understand causal relationships  
+
+## M.3
+Because the score is a sum over all the observations (see p.210), it is not averaged by the number of data 
+
+## M.4
+See p. 220, adding parameters can actually reduce the effective number of parameters (=penalty in WAIC formula, it's the penalty of overfitting).
+
+## M.5 (well explained in the YT video)
+Informative priors reduce the flexibility of the model (thus they reduce overfitting). It ignores irregular distractions from the sample. But if they are too skeptical, the model will learn nothing from the data.
+
+## M.6 (well explained in the YT video)
+if priors are too skeptical, the model will learn nothing from the data. The flexibility is constrained too much -> underfitting  
+
+## H.1
+```{r}
+data("Laffer")
+d<-Laffer
+m1 <- quap(
+    alist(
+        tax_revenue ~ dnorm( mu , exp(log_sigma) ),
+        mu <- a + b*tax_rate,
+        a ~ dnorm( 0.5 , 1 ),
+        b ~ dnorm( 0 , 10 ),
+        log_sigma ~ dnorm( 0 , 1 )
+    ), data=d )
+
+post <- extract.samples(m1)
+mass_seq <- seq( from=min(d$tax_rate) , to=max(d$tax_rate) , length.out=100 )
+l <- link( m1 , data=list( tax_rate=mass_seq ) )
+mu <- apply( l , 2 , mean )
+ci <- apply( l , 2 , PI )
+plot( tax_revenue ~ tax_rate , data=d )
+lines( mass_seq , mu )
+shade( ci , mass_seq )
+```
+```{r}
+m2 <- quap(
+    alist(
+        tax_revenue ~ dnorm( mu , exp(log_sigma) ),
+        mu <- a + b[1]*tax_rate + b[2]*tax_rate^2,
+        a ~ dnorm( 0.5 , 1 ),
+        b ~ dnorm( 0 , 10 ),
+        log_sigma ~ dnorm( 0 , 1 )
+    ), data=d , start=list(b=rep(0,2)) )
+
+post <- extract.samples(m2)
+mass_seq <- seq( from=min(d$tax_rate) , to=max(d$tax_rate) , length.out=100 )
+l <- link( m2 , data=list( tax_rate=mass_seq ) )
+mu <- apply( l , 2 , mean )
+ci <- apply( l , 2 , PI )
+plot( tax_revenue ~ tax_rate , data=d )
+lines( mass_seq , mu )
+shade( ci , mass_seq )
+```
+```{r}
+m3 <- quap(
+    alist(
+        tax_revenue ~ dnorm( mu , exp(log_sigma) ),
+        mu <- a + b[1]*tax_rate + b[2]*tax_rate^2 +
+                  b[3]*tax_rate^3,
+        a ~ dnorm( 0.5 , 1 ),
+        b ~ dnorm( 0 , 10 ),
+        log_sigma ~ dnorm( 0 , 1 )
+    ), data=d , start=list(b=rep(0,3)) )
+
+post <- extract.samples(m3)
+mass_seq <- seq( from=min(d$tax_rate) , to=max(d$tax_rate) , length.out=100 )
+l <- link( m3 , data=list( tax_rate=mass_seq ) )
+mu <- apply( l , 2 , mean )
+ci <- apply( l , 2 , PI )
+plot( tax_revenue ~ tax_rate , data=d )
+lines( mass_seq , mu )
+shade( ci , mass_seq )
+```
+```{r}
+set.seed(1)
+sapply( list(m1,m2,m3) , function(m) sum(lppd(m)) )
+compare( m1,m2,m3, func=WAIC )
+```
+
+## H.2
+```{r}
+set.seed(24071847)
+PSIS_m2 <- PSIS(m2,pointwise=TRUE)
+set.seed(24071847)
+WAIC_m2 <- WAIC(m2,pointwise=TRUE)
+plot( PSIS_m2$k , WAIC_m2$penalty , xlab="PSIS Pareto k" ,
+    ylab="WAIC penalty" , col=rangi2 , lwd=2 )
+
+```
+```{r}
+m2t <- quap(
+    alist(
+        tax_revenue ~ dstudent( 2 , mu , sigma ) ,
+        mu <-  a + b*tax_rate ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        b~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = d )
+
+set.seed(24071847)
+PSIS_m2t <- PSIS(m2t,pointwise=TRUE)
+set.seed(24071847)
+WAIC_m2t <- WAIC(m2t,pointwise=TRUE)
+plot( PSIS_m2t$k , WAIC_m2t$penalty , xlab="PSIS Pareto k" ,
+    ylab="WAIC penalty" , col=rangi2 , lwd=2 )
+
+```
+```{r}
+d <- sim_happiness( seed=1977 , N_years=1000 )
+precis(d)
+d2 <- d[ d$age>17 , ] # only adults
+d2$A <- ( d2$age - 18 ) / ( 65 - 18 )
+d2$mid <- d2$married+1
+m6.9 <- quap(
+    alist(
+        happiness ~ dnorm( mu , sigma ),
+        mu <- a[mid] + bA*A,
+        a[mid] ~ dnorm( 0 , 1 ),
+        bA ~ dnorm( 0 , 2 ),
+        sigma ~ dexp(1)
+    ) , data=d2 )
+
+m6.10 <- quap(
+    alist(
+        happiness ~ dnorm( mu , sigma ),
+        mu <- a + bA*A,
+        a ~ dnorm( 0 , 1 ),
+        bA ~ dnorm( 0 , 2 ),
+        sigma ~ dexp(1)
+    ) , data=d2 )
+
+set.seed(1)
+sapply( list(m6.10,m6.10) , function(m) sum(lppd(m)) )
+compare( m6.9,m6.10, func=WAIC )
+```
+```{r}
+post <- extract.samples(m6.9)
+mass_seq <- seq( from=min(d2$A) , to=max(d2$A) , length.out=100 )
+#l <- link( m6.9 , data=list( A=mass_seq ) )
+mu <- apply( l , 2 , mean )
+ci <- apply( l , 2 , PI )
+plot( happiness ~ A , data=d2 )
+lines( mass_seq , mu )
+shade( ci , mass_seq )
+```
+
 
 
