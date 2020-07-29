@@ -1,6 +1,7 @@
 ## Illustrating interactions
 
 library(ggplot2)
+library(rethinking)
 
 x <- 1:30 + rnorm(30)
 y1 <- x * 1.5 + rnorm(30)
@@ -34,3 +35,17 @@ ggplot(data = dat2, aes(x = x, y = y, color = A)) +
   geom_point() + 
   ggtitle("Interaction")
 ggsave("code/chapter_08/interaction.png")
+
+## Tulip data
+data("tulips")
+
+ggplot(data = tulips, aes(x = water, y = blooms, color = as.factor(shade))) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+ggsave("code/chapter_08/tulips1.png")
+
+ggplot(data = tulips, aes(x = water, y = blooms)) +
+  facet_wrap(~ as.factor(shade)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+ggsave("code/chapter_08/tulips2.png")
