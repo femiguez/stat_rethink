@@ -1,0 +1,134 @@
+---
+title: "Stat_rethink Chapter 8"
+author: "Mariana CHiozza"
+date: "7/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Conditional Manatees
+
+
+## Building an interaction
+
+AIC criterium: 
+
+Only for comparing a model that treats all continents the same way vs a model that allows different slopes in different continents. We need models that use all of the same data (Chaper 7).
+
+
+If we want to include continents in the model: Instead of doing separate linear regressions for each continent (African vs Non-African), include them as having different intercepts (alphas) using an indexing approach. We can use the same priors or assign different priors to the different continents.
+
+NOTE: Adding a term to the linear model with 0/1 values for African/Non-African will not work because it will tell the model that mu for Africa nations is more uncertain than mu for Non-African nations.
+
+BUT, this is going to show us the same slope. Including continents as another intercept is allowing the model to predict a different (in this case lower) mean for African (0.88) than for Non-African (1.05) nations (Figure 8.4, pag. 247 and output from 8.10 code).
+
+
+How to make the slope conditional on continent to include the changes in slope due to different continents: Use the indexing approach as with the intercepts (and use the same priors).
+
+This way, the continents have 0.13 slope for African and -0.14 for Non-African nations.
+
+
+## Continuous interaction
+
+```{r}
+library(rethinking)
+data(tulips)
+d<-tulips
+```
+
+```{r}
+d$blooms_std<-d$blooms/max(d$blooms)
+d$water_cent<-d$water - mean(d$water)
+d$shade_cent<-d$shade - mean(d$shade)
+
+m8.5<-quap(
+  alist(
+    blooms_std~dnorm(mu, sigma),
+    mu<- a + bw*water_cent + bs*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5 , 0.25),
+    bw ~ dnorm (0, 0.25) ,
+    bs ~ dnorm(0, 0.25),
+    bws~ dnorm(0, 0.25),
+    sigma ~ dexp (1)
+  ), data = d
+)
+
+```
+
+
+
+
+
+
+### Practice
+
+## 8E1.
+
+1) Ambient temperature: Optimum-supra-optimum and sub-optimum temperatures 
+
+2) Countries: Developed vs Developing countries
+
+3) Type of car: Gasoline only, hybrids, electric only.
+
+
+## 8E2.
+
+(3)
+
+## 8E3.
+
+(1)
+
+y= onion caramelization
+x= cooking heat
+
+y= m*x + b
+
+(2)
+
+y= car speed
+x= number of cilinders or injectors
+
+y= m*x + b
+
+(3)
+
+y= republican people
+x= republican parents/friends
+
+y= m[cid]*x + b[cid]
+
+(4)
+
+y= animal inteligence
+x= social skils or manipulative appendages
+
+y= m*x + b
+
+
+## 8M1.
+
+Plant development is affected by temperature. There is an optimun air temperature at which bloom will occur. Temperatures below or above that optimun will not produce any flower. 
+
+Also, high temperatures could also increase soil water evaporation and diminish the available water for growing. And, shading could decrease the canopy temperature below the optimun.
+
+## 8M2.
+
+T = Temperature (1= low, 0=high, 2=optimun)
+
+B~Normal (mu, sigma)
+
+mu= alpha + bT*T = 0
+
+## 8M3.
+
+Ravens population may rise as the number of wolves increase due to the availability of food, up to a point where the population of ravens will not longer depend on the availability of food.
+
+
+
+
+
+
