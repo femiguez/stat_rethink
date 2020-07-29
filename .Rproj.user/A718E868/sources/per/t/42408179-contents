@@ -1,0 +1,55 @@
+---
+title: "Stat_rethink Chapter 5"
+author: "Mariana CHiozza"
+date: "6/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The many variables and the spurious waffles
+
+- Correlation is not surprising. In large data sets, every pair of variables has a non-zero correlation. But, we need to distinguish association from causation. We can do that with MULTIPLE REGRESSION where:
+
+1) There is a control for the variables that seems important but they are not.
+
+2) Multiple causes are considered 
+
+3) Interactions: Correlations and dependencies between causes/predictors.
+
+Multivariate models as tools for revealing spurious correlations and for revealing important ones.
+
+## Spurious association
+
+```{r}
+library(rethinking)
+data(WaffleDivorce)
+d<-WaffleDivorce
+
+# Standarize variables
+
+d$D <-standardize(d$Divorce)
+d$M <-standardize(d$Marriage)
+d$A <-standardize(d$MedianAgeMarriage)
+
+sd(d$MedianAgeMarriage)
+m5.1<-quap(
+  alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + bA*A,
+    a ~ dnorm (0,0.2),
+    bA ~ dnorm(0,0.5),
+    sigma~dexp(1)
+  ), data=d)
+
+
+set.seed(10)
+prior<-extract.prior(m5.1)
+mu=link(m5.1, post=prior, data=list(A=c(-2,2)))
+plot(NULL, xlim=c(-2,2), ylim=c(-2,2))
+for (i in 1:50) lines(c(-2,2) , mu[i, ] , col=col.alpha("black", 0.4))
+
+```
+

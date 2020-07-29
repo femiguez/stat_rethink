@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1592863635960.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1940636427",
+    "id" : "42408179",
+    "lastKnownWriteTime" : 1592844573,
+    "last_content_update" : 1592863733965,
+    "path" : "C:/Users/Mariana/Desktop/ISU 2018-19/Statistical Rethinking summer class/Stat rethink_Chap5_mariana.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "24,0",
+        "last_setup_crc32" : "F7B5526Dbb338d19",
+        "scrollLine" : "24"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
