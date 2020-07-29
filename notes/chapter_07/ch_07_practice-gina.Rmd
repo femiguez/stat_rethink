@@ -46,13 +46,33 @@ round(-sum(log(p4)*p4), 2)
 
 Entropy is `r round(-sum(log(p4)*p4), 2)`
 
+
+Curiosity
+```{r}
+x <- seq(0, 1, by =0.1)
+y <- 1-x
+
+tibble(x = x,
+       y = y,
+       entx = x*log(x),
+       enty = y*log(y)) %>% 
+  mutate(entx = ifelse(is.nan(entx), 0, entx),
+         enty = ifelse(is.nan(enty), 0, enty),
+         ent = -(entx + enty)) %>% 
+  ggplot(aes(x, y)) +
+  geom_point(aes(color = ent), size = 5) + 
+  scale_color_viridis_c()
+
+```
+
 ## 7M1. 
 
 $AIC = D_{train} + 2p = -2lppd + 2p$
 $WAIC = -2lppd + 2\sum var_{\theta}\log p(y_i|\theta)$
 
-It seems like the penalty term is the only difference. Instad of just the number of parameters $p$ in $AIC$, we have 
+It seems like the penalty term is the only difference. Instad of just the number of parameters $p$ in $AIC$, we have an "effective" number of parameters. 
 
+I don't quite understand what the *lppd* is. 
 Log-posterior-predictive-density.
 The log of the average probability for each observation...?
 
