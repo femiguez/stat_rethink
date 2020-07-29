@@ -45,5 +45,13 @@ Notes
 
 [Chapter 7: Mariana Notes](https://femiguez.github.io/stat_rethink/notes/chapter_07/Stat-rethink_Chap7_mariana.html)
 
+[Chapter 8: Conditional Manatees](https://femiguez.github.io/stat_rethink/notes/chapter_08/ch_08_Conditional_Manatees.html)
+
+[Chapter 8: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_08/Chap8_StatRethink_Anabelle.html)
+
+[Chapter 8: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_08/Stat-rethink_Chap8_mariana.html)
+
+[Chapter 8: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_08/ch_08_practice-gina.html)
+
 
 
