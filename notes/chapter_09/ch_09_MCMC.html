@@ -655,7 +655,10 @@ ggplot(mpsd, aes(x = value, color = key)) +
 <pre class="r"><code>dd$rugged_std2 &lt;- dd$rugged_std - 0.215
 dd$cid_f &lt;- as.factor(dd$cid)
 
-m8.3.lm &lt;- lm(log_gdp_std ~ cid_f*rugged_std2, data = dd)
+m8.3.lm &lt;- lm(log_gdp_std ~ cid_f * rugged_std2, data = dd)
+
+## This is equivalent to 
+## m8.3.lm &lt;- lm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2, data = dd)
 
 m8.3.lm</code></pre>
 <pre><code>## 
@@ -668,6 +671,15 @@ m8.3.lm</code></pre>
 ## cid_f2:rugged_std2  
 ##            -0.2865</code></pre>
 <p>However, this model is not equivalent to the model SR wants us to fit. Here <strong>(Intercept)</strong> is the intercept for the regression for Africa and <strong>cid_f2</strong> is the difference between Africa and non-Africa. If we want non-Africa we need to do 1.0511. Similarly, the slope for Africa is <strong>0.1387</strong> and for non-Africa -0.1478.</p>
+<p>Looking at the model matrix might help</p>
+<pre class="r"><code>round(head(model.matrix(m8.3.lm)), 2)</code></pre>
+<pre><code>##    (Intercept) cid_f2 rugged_std2 cid_f2:rugged_std2
+## 3            1      0       -0.08               0.00
+## 5            1      1        0.34               0.34
+## 8            1      1       -0.09              -0.09
+## 9            1      1       -0.09              -0.09
+## 10           1      1        0.22               0.22
+## 12           1      1       -0.21              -0.21</code></pre>
 <p>If we want to set up the model with <strong>lm</strong> the way SR likes it we need.</p>
 <pre class="r"><code>m8.3.lm2 &lt;- lm(log_gdp_std ~ cid_f + rugged_std2:cid_f - 1, data = dd)</code></pre>
 <p>Now, <strong>cid_f1</strong> is the intercept for Africa, <strong>cid_f2</strong> is the intercept for non-Africa. <strong>cid_f1:rugged_std2</strong> is the slope for Africa and <strong>cid_f2:rugged_std2</strong> is the slope for non-Africa. In the book, <strong>cid_f1</strong> equates to <strong>a[1]</strong> and <strong>cid_f2</strong> to <strong>a[2]</strong>. Similarly, <strong>cid_f1:rugged_std2</strong> equates to <strong>b[1]</strong> and <strong>cif_f2:rugged_std2</strong> to <strong>b[2]</strong>. We can get confidence intervals in the following way.</p>
@@ -677,6 +689,15 @@ m8.3.lm</code></pre>
 ## cid_f2              1.03   1.07
 ## cid_f1:rugged_std2 -0.01   0.29
 ## cid_f2:rugged_std2 -0.26  -0.04</code></pre>
+<p>The model matrix is now</p>
+<pre class="r"><code>round(head(model.matrix(m8.3.lm2)), 2)</code></pre>
+<pre><code>##    cid_f1 cid_f2 cid_f1:rugged_std2 cid_f2:rugged_std2
+## 3       1      0              -0.08               0.00
+## 5       0      1               0.00               0.34
+## 8       0      1               0.00              -0.09
+## 9       0      1               0.00              -0.09
+## 10      0      1               0.00               0.22
+## 12      0      1               0.00              -0.21</code></pre>
 </div>
 <div id="bayesian-brms" class="section level2">
 <h2>Bayesian: brms</h2>
@@ -690,8 +711,8 @@ m8.3.brms1 &lt;- brm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2,
 <pre><code>## 
 ## SAMPLING FOR MODEL '6db8007f4396bb387e7f2284e1bf6289' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 6.9e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.69 seconds.
+## Chain 1: Gradient evaluation took 1.9e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.19 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -708,9 +729,9 @@ m8.3.brms1 &lt;- brm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2,
 ## Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.043963 seconds (Warm-up)
-## Chain 1:                0.047582 seconds (Sampling)
-## Chain 1:                0.091545 seconds (Total)
+## Chain 1:  Elapsed Time: 0.043621 seconds (Warm-up)
+## Chain 1:                0.048728 seconds (Sampling)
+## Chain 1:                0.092349 seconds (Total)
 ## Chain 1: 
 ## 
 ## SAMPLING FOR MODEL '6db8007f4396bb387e7f2284e1bf6289' NOW (CHAIN 2).
@@ -733,9 +754,9 @@ m8.3.brms1 &lt;- brm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2,
 ## Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 2: 
-## Chain 2:  Elapsed Time: 0.046476 seconds (Warm-up)
-## Chain 2:                0.039775 seconds (Sampling)
-## Chain 2:                0.086251 seconds (Total)
+## Chain 2:  Elapsed Time: 0.042766 seconds (Warm-up)
+## Chain 2:                0.042446 seconds (Sampling)
+## Chain 2:                0.085212 seconds (Total)
 ## Chain 2: 
 ## 
 ## SAMPLING FOR MODEL '6db8007f4396bb387e7f2284e1bf6289' NOW (CHAIN 3).
@@ -758,9 +779,9 @@ m8.3.brms1 &lt;- brm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2,
 ## Chain 3: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 3: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 3: 
-## Chain 3:  Elapsed Time: 0.046804 seconds (Warm-up)
-## Chain 3:                0.040797 seconds (Sampling)
-## Chain 3:                0.087601 seconds (Total)
+## Chain 3:  Elapsed Time: 0.042014 seconds (Warm-up)
+## Chain 3:                0.042006 seconds (Sampling)
+## Chain 3:                0.08402 seconds (Total)
 ## Chain 3: 
 ## 
 ## SAMPLING FOR MODEL '6db8007f4396bb387e7f2284e1bf6289' NOW (CHAIN 4).
@@ -783,9 +804,9 @@ m8.3.brms1 &lt;- brm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2,
 ## Chain 4: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 4: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 4: 
-## Chain 4:  Elapsed Time: 0.042988 seconds (Warm-up)
-## Chain 4:                0.046638 seconds (Sampling)
-## Chain 4:                0.089626 seconds (Total)
+## Chain 4:  Elapsed Time: 0.043639 seconds (Warm-up)
+## Chain 4:                0.04388 seconds (Sampling)
+## Chain 4:                0.087519 seconds (Total)
 ## Chain 4:</code></pre>
 <pre class="r"><code>## Also, it does not have explicit priors for the model parameters
 ## What is brms doing under the hood?
@@ -813,8 +834,8 @@ m8.3.brms2 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 <pre><code>## 
 ## SAMPLING FOR MODEL '74522faa76b85147627bc6005705ad2b' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 2e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.2 seconds.
+## Chain 1: Gradient evaluation took 1.9e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.19 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -831,15 +852,15 @@ m8.3.brms2 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.029372 seconds (Warm-up)
-## Chain 1:                0.024558 seconds (Sampling)
-## Chain 1:                0.05393 seconds (Total)
+## Chain 1:  Elapsed Time: 0.03326 seconds (Warm-up)
+## Chain 1:                0.025453 seconds (Sampling)
+## Chain 1:                0.058713 seconds (Total)
 ## Chain 1: 
 ## 
 ## SAMPLING FOR MODEL '74522faa76b85147627bc6005705ad2b' NOW (CHAIN 2).
 ## Chain 2: 
-## Chain 2: Gradient evaluation took 6e-06 seconds
-## Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.06 seconds.
+## Chain 2: Gradient evaluation took 7e-06 seconds
+## Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.07 seconds.
 ## Chain 2: Adjust your expectations accordingly!
 ## Chain 2: 
 ## Chain 2: 
@@ -856,9 +877,9 @@ m8.3.brms2 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 2: 
-## Chain 2:  Elapsed Time: 0.03033 seconds (Warm-up)
-## Chain 2:                0.030751 seconds (Sampling)
-## Chain 2:                0.061081 seconds (Total)
+## Chain 2:  Elapsed Time: 0.032839 seconds (Warm-up)
+## Chain 2:                0.034512 seconds (Sampling)
+## Chain 2:                0.067351 seconds (Total)
 ## Chain 2: 
 ## 
 ## SAMPLING FOR MODEL '74522faa76b85147627bc6005705ad2b' NOW (CHAIN 3).
@@ -881,15 +902,15 @@ m8.3.brms2 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 3: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 3: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 3: 
-## Chain 3:  Elapsed Time: 0.031508 seconds (Warm-up)
-## Chain 3:                0.024524 seconds (Sampling)
-## Chain 3:                0.056032 seconds (Total)
+## Chain 3:  Elapsed Time: 0.040348 seconds (Warm-up)
+## Chain 3:                0.03185 seconds (Sampling)
+## Chain 3:                0.072198 seconds (Total)
 ## Chain 3: 
 ## 
 ## SAMPLING FOR MODEL '74522faa76b85147627bc6005705ad2b' NOW (CHAIN 4).
 ## Chain 4: 
-## Chain 4: Gradient evaluation took 1.7e-05 seconds
-## Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.17 seconds.
+## Chain 4: Gradient evaluation took 9e-06 seconds
+## Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.09 seconds.
 ## Chain 4: Adjust your expectations accordingly!
 ## Chain 4: 
 ## Chain 4: 
@@ -906,9 +927,9 @@ m8.3.brms2 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 4: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 4: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 4: 
-## Chain 4:  Elapsed Time: 0.037016 seconds (Warm-up)
-## Chain 4:                0.025666 seconds (Sampling)
-## Chain 4:                0.062682 seconds (Total)
+## Chain 4:  Elapsed Time: 0.032925 seconds (Warm-up)
+## Chain 4:                0.030016 seconds (Sampling)
+## Chain 4:                0.062941 seconds (Total)
 ## Chain 4:</code></pre>
 <pre class="r"><code>## Still does not have explicit priors
 prior_summary(m8.3.brms2)</code></pre>
@@ -927,7 +948,7 @@ prior_summary(m8.3.brms2)</code></pre>
 ## 5      
 ## 6</code></pre>
 <pre class="r"><code>## Now that I know what the model looks like
-## I can define explicit explicit priors
+## I can define explicit priors
 ## for all parameters
 prs &lt;- prior(normal(1, 0.1), coef = &quot;cid_f1&quot;) + 
   prior(normal(1, 0.1), coef = &quot;cid_f2&quot;) +
@@ -942,8 +963,8 @@ m8.3.brms3 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 <pre><code>## 
 ## SAMPLING FOR MODEL 'f193899050278aaa08bf313b32828415' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 1.7e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.17 seconds.
+## Chain 1: Gradient evaluation took 1.9e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.19 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -960,15 +981,15 @@ m8.3.brms3 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.030614 seconds (Warm-up)
-## Chain 1:                0.025444 seconds (Sampling)
-## Chain 1:                0.056058 seconds (Total)
+## Chain 1:  Elapsed Time: 0.029758 seconds (Warm-up)
+## Chain 1:                0.025947 seconds (Sampling)
+## Chain 1:                0.055705 seconds (Total)
 ## Chain 1: 
 ## 
 ## SAMPLING FOR MODEL 'f193899050278aaa08bf313b32828415' NOW (CHAIN 2).
 ## Chain 2: 
-## Chain 2: Gradient evaluation took 1e-05 seconds
-## Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.1 seconds.
+## Chain 2: Gradient evaluation took 7e-06 seconds
+## Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.07 seconds.
 ## Chain 2: Adjust your expectations accordingly!
 ## Chain 2: 
 ## Chain 2: 
@@ -985,9 +1006,9 @@ m8.3.brms3 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 2: 
-## Chain 2:  Elapsed Time: 0.032578 seconds (Warm-up)
-## Chain 2:                0.033989 seconds (Sampling)
-## Chain 2:                0.066567 seconds (Total)
+## Chain 2:  Elapsed Time: 0.031097 seconds (Warm-up)
+## Chain 2:                0.033159 seconds (Sampling)
+## Chain 2:                0.064256 seconds (Total)
 ## Chain 2: 
 ## 
 ## SAMPLING FOR MODEL 'f193899050278aaa08bf313b32828415' NOW (CHAIN 3).
@@ -1010,15 +1031,15 @@ m8.3.brms3 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 3: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 3: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 3: 
-## Chain 3:  Elapsed Time: 0.031699 seconds (Warm-up)
-## Chain 3:                0.028379 seconds (Sampling)
-## Chain 3:                0.060078 seconds (Total)
+## Chain 3:  Elapsed Time: 0.031881 seconds (Warm-up)
+## Chain 3:                0.025435 seconds (Sampling)
+## Chain 3:                0.057316 seconds (Total)
 ## Chain 3: 
 ## 
 ## SAMPLING FOR MODEL 'f193899050278aaa08bf313b32828415' NOW (CHAIN 4).
 ## Chain 4: 
-## Chain 4: Gradient evaluation took 1.3e-05 seconds
-## Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.13 seconds.
+## Chain 4: Gradient evaluation took 1.1e-05 seconds
+## Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.11 seconds.
 ## Chain 4: Adjust your expectations accordingly!
 ## Chain 4: 
 ## Chain 4: 
@@ -1035,9 +1056,9 @@ m8.3.brms3 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## Chain 4: Iteration: 1800 / 2000 [ 90%]  (Sampling)
 ## Chain 4: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 4: 
-## Chain 4:  Elapsed Time: 0.031364 seconds (Warm-up)
-## Chain 4:                0.034732 seconds (Sampling)
-## Chain 4:                0.066096 seconds (Total)
+## Chain 4:  Elapsed Time: 0.033358 seconds (Warm-up)
+## Chain 4:                0.031245 seconds (Sampling)
+## Chain 4:                0.064603 seconds (Total)
 ## Chain 4:</code></pre>
 <pre class="r"><code>prior_summary(m8.3.brms3)</code></pre>
 <pre><code>##            prior class               coef group resp dpar nlpar bound
@@ -1051,6 +1072,7 @@ m8.3.brms3 &lt;- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2,
 ## https://bookdown.org/content/4857/markov-chain-monte-carlo.html#good-king-markov-and-his-island-kingdom
 ## This version is more complicated and it turns the model into a nonlinear one
 ## just so that we can define the parameters in terms of 'a' and 'b'
+dd$cid &lt;- ifelse(dd$cid == 1, &quot;1&quot;, &quot;2&quot;)
 m8.3.brms4 &lt;- 
   brm(data = dd, 
       family = gaussian,
@@ -1058,13 +1080,50 @@ m8.3.brms4 &lt;-
          a ~ 0 + cid, 
          b ~ 0 + cid,
          nl = TRUE),
-      prior = c(prior(normal(1, 0.1), class = b, coef = cid1, nlpar = a),
-                prior(normal(1, 0.1), class = b, coef = cid2, nlpar = a),
-                prior(normal(0, 0.3), class = b, coef = cid1, nlpar = b),
-                prior(normal(0, 0.3), class = b, coef = cid2, nlpar = b),
+      prior = c(prior(normal(1, 0.1), class = b, coef = &quot;cid1&quot;, nlpar = a),
+                prior(normal(1, 0.1), class = b, coef = &quot;cid2&quot;, nlpar = a),
+                prior(normal(0, 0.3), class = b, coef = &quot;cid1&quot;, nlpar = b),
+                prior(normal(0, 0.3), class = b, coef = &quot;cid2&quot;, nlpar = b),
                 prior(exponential(1), class = sigma)),
       chains = 1, cores = 1,
       seed = 9)</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre><code>## 
+## SAMPLING FOR MODEL '91719499b4888d68d2b9c4403baffd99' NOW (CHAIN 1).
+## Chain 1: 
+## Chain 1: Gradient evaluation took 4.8e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.48 seconds.
+## Chain 1: Adjust your expectations accordingly!
+## Chain 1: 
+## Chain 1: 
+## Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
+## Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
+## Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
+## Chain 1: Iteration:  600 / 2000 [ 30%]  (Warmup)
+## Chain 1: Iteration:  800 / 2000 [ 40%]  (Warmup)
+## Chain 1: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+## Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+## Chain 1: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+## Chain 1: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+## Chain 1: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+## Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
+## Chain 1: 
+## Chain 1:  Elapsed Time: 0.119639 seconds (Warm-up)
+## Chain 1:                0.103963 seconds (Sampling)
+## Chain 1:                0.223602 seconds (Total)
+## Chain 1:</code></pre>
+<pre class="r"><code>## Priors
+prior_summary(m8.3.brms4)</code></pre>
+<pre><code>##            prior class coef group resp dpar nlpar bound
+## 1                    b                          a      
+## 2 normal(1, 0.1)     b cid1                     a      
+## 3 normal(1, 0.1)     b cid2                     a      
+## 4                    b                          b      
+## 5 normal(0, 0.3)     b cid1                     b      
+## 6 normal(0, 0.3)     b cid2                     b      
+## 7 exponential(1) sigma</code></pre>
 </div>
 </div>
 

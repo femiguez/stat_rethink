@@ -53,5 +53,7 @@ Notes
 
 [Chapter 8: Gina Practice](https://femiguez.github.io/stat_rethink/notes/chapter_08/ch_08_practice-gina.html)
 
+[Chapter 9: Markov chain Monte Carlo](https://femiguez.github.io/stat_rethink/notes/chapter_09/ch_09_MCMC.html)
+
 
 

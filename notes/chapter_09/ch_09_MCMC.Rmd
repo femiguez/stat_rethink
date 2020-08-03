@@ -1,0 +1,255 @@
+---
+title: "Markov chain Monte Carlo"
+author: "Fernando Miguez"
+date: "8/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(ggplot2)
+library(tidyr)
+library(brms)
+```
+
+# Markov chain Monte Carlo
+
+## Practice problems
+
+### 9M1
+
+I don't expect that a uniform prior for sigma will have much of an effect on the estimates for model m9.1. The current value of sigma is 0.11, so well within the [0-1] range of the uniform prior.
+
+```{r, cache = TRUE}
+data(rugged)
+d <- rugged
+d$log_gdp <- log(d$rgdppc_2000)
+dd <- d[ complete.cases(d$rgdppc_2000) , ]
+dd$log_gdp_std <- dd$log_gdp / mean(dd$log_gdp)
+dd$rugged_std <- dd$rugged / max(dd$rugged)
+dd$cid <- ifelse( dd$cont_africa==1 , 1 , 2 )
+
+## Using quadp
+m8.3 <- quap(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dd )
+precis( m8.3 , depth=2 )
+
+## R code 9.13
+dat_slim <- list(
+    log_gdp_std = dd$log_gdp_std,
+    rugged_std = dd$rugged_std,
+    cid = as.integer( dd$cid )
+)
+str(dat_slim)
+
+## R code 9.14
+m9.1 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=1 )
+
+m9.1p <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dunif( 0, 1 )
+    ) , data=dat_slim , chains=1 )
+```
+
+As expected the different priors for sigma do not seem to affect the results.
+
+### 9M2
+
+Note: I don't like that the rethinking package has a graphics side effect. 
+
+```{r, cache = TRUE}
+## What does a dexp(0.3) mean?
+par(mfrow = c(1,1))
+hist(rexp(1e4, 0.3))
+## This forces the parameter to be positive
+## which would not be a good choice for the slope
+## Currently b[1] is positive and b[2] is negative so
+## dexp(0.3) will force both slopes to be positive
+
+m9.1a <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dexp( 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=1 )
+## compare models
+precis( m9.1 , depth = 2 )
+precis( m9.1a , depth = 2 )
+```
+
+The new prior which forces the slope to be positive, has pushed teh b[2] to a value of 0.02 with an interval of (0 - 0.05) and, also, as a result b[1] to a value of 0.15. Only the positive values for the slope, given by the prior, are compatible with the model now.
+
+### 9M3
+
+How much warmup is enough? Or what is the minimum amount of warmup needed?
+
+As he says in the chapter, it depends on what you are after. If you only want the 'map'.
+
+```{r, cache = TRUE}
+m9.1w <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dexp( 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=1 , iter = 600)
+## 500 iterations are not enough
+```
+
+I stopped getting complains after 600 iterations. 
+
+### 9H1
+
+I'm not sure that in the model below the "y = 1" matters because there is no deterministic model that matches "y" to anything else. A Cauchy distribution has fat tails compared to a Normal. https://en.wikipedia.org/wiki/Cauchy_distribution. The moments are not defined, but it does have a mode and median, which are equal to zero in the example below. The distributions created by the posterior should be equivalent to randomly sampling from them.
+
+```{r, cache = TRUE}
+mp <- ulam(
+  alist(
+    a ~ dnorm(0, 1),
+    b ~ dcauchy(0, 1)
+  ), data = list(y = 1), chains = 1
+)
+
+par(mfrow = c(2,1))
+traceplot(mp)
+par(mfrow = c(1,1))
+
+mps <- extract.samples(mp)
+mpsd <- gather(as.data.frame(mps))
+
+ggplot(mpsd, aes(x = value, color = key)) + 
+  geom_density()
+```
+
+The Cauchy is a lot more spread out than the normal. The number of effective samples is about 363 for a and 272 for b.
+
+### 9H2
+
+
+# How to set up models
+
+I thought I would try to show how to set up models using other functions and this inevitably led me to reviewing a basic concept considered in earlier chapters.
+
+## frequentist: lm
+
+The GDP-ruggedness example can be easily set up with **lm**.
+
+```{r}
+dd$rugged_std2 <- dd$rugged_std - 0.215
+dd$cid_f <- as.factor(dd$cid)
+
+m8.3.lm <- lm(log_gdp_std ~ cid_f * rugged_std2, data = dd)
+
+## This is equivalent to 
+## m8.3.lm <- lm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2, data = dd)
+
+m8.3.lm
+```
+
+However, this model is not equivalent to the model SR wants us to fit. Here **(Intercept)** is the intercept for the regression for Africa and **cid_f2** is the difference between Africa and non-Africa. If we want non-Africa we need to do `r 0.8840 + 0.1671`. Similarly, the slope for Africa is **0.1387** and for non-Africa `r 0.1387 + (-0.2865)`.
+
+Looking at the model matrix might help
+
+```{r}
+round(head(model.matrix(m8.3.lm)), 2)
+```
+
+If we want to set up the model with **lm** the way SR likes it we need.
+
+```{r}
+m8.3.lm2 <- lm(log_gdp_std ~ cid_f + rugged_std2:cid_f - 1, data = dd)
+```
+
+Now, **cid_f1** is the intercept for Africa, **cid_f2** is the intercept for non-Africa. **cid_f1:rugged_std2** is the slope for Africa and **cid_f2:rugged_std2** is the slope for non-Africa.  In the book, **cid_f1** equates to **a[1]** and **cid_f2** to **a[2]**. Similarly, **cid_f1:rugged_std2** equates to **b[1]** and **cif_f2:rugged_std2** to **b[2]**. We can get confidence intervals in the following way.
+
+```{r}
+round( confint(m8.3.lm2), 2)
+```
+
+The model matrix is now
+
+```{r}
+round(head(model.matrix(m8.3.lm2)), 2)
+```
+
+## Bayesian: brms
+
+When trying to fit the same model with *brms* things are a little bit different.
+
+```{r, cache = TRUE}
+## Easy brms. This model is the Bayesian version of the model m8.3.lm above
+## But again this is not the same as in the book
+m8.3.brms1 <- brm(log_gdp_std ~ cid_f + rugged_std2 + cid_f:rugged_std2, 
+                  data = dd)
+
+## Also, it does not have explicit priors for the model parameters
+## What is brms doing under the hood?
+prior_summary(m8.3.brms1)
+
+## This is what we need to do to generate a model equivalent to 
+## m8.3.lm2 above
+m8.3.brms2 <- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2, 
+                 data = dd)
+
+## Still does not have explicit priors
+prior_summary(m8.3.brms2)
+
+## Now that I know what the model looks like
+## I can define explicit priors
+## for all parameters
+prs <- prior(normal(1, 0.1), coef = "cid_f1") + 
+  prior(normal(1, 0.1), coef = "cid_f2") +
+  prior(normal(0, 0.3), coef = "cid_f1:rugged_std2") + 
+  prior(normal(0, 0.3), coef = "cid_f2:rugged_std2") +
+  prior(exponential(1), class = "sigma")
+
+m8.3.brms3 <- brm(log_gdp_std ~ 0 + cid_f + cid_f:rugged_std2, 
+                 data = dd, prior = prs)
+
+prior_summary(m8.3.brms3)
+```
+
+```{r, cache = TRUE}
+## Different version from
+## https://bookdown.org/content/4857/markov-chain-monte-carlo.html#good-king-markov-and-his-island-kingdom
+## This version is more complicated and it turns the model into a nonlinear one
+## just so that we can define the parameters in terms of 'a' and 'b'
+dd$cid <- ifelse(dd$cid == 1, "1", "2")
+m8.3.brms4 <- 
+  brm(data = dd, 
+      family = gaussian,
+      bf(log_gdp_std ~ 0 + a + b * (rugged_std - 0.215), 
+         a ~ 0 + cid, 
+         b ~ 0 + cid,
+         nl = TRUE),
+      prior = c(prior(normal(1, 0.1), class = b, coef = "cid1", nlpar = a),
+                prior(normal(1, 0.1), class = b, coef = "cid2", nlpar = a),
+                prior(normal(0, 0.3), class = b, coef = "cid1", nlpar = b),
+                prior(normal(0, 0.3), class = b, coef = "cid2", nlpar = b),
+                prior(exponential(1), class = sigma)),
+      chains = 1, cores = 1,
+      seed = 9)
+## Priors
+prior_summary(m8.3.brms4)
+```
