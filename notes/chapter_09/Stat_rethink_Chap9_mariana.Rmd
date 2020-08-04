@@ -1,0 +1,287 @@
+---
+title: "Stat_rethink Chapter 9"
+author: "Mariana CHiozza"
+date: "7/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Markov Chain Monte Carlo
+
+Estimate the posterior probability distribution using a random process= MCMC
+
+The shape of the posterior do not need to be assumed. The benefit is that we do not assume normality.
+
+Explore ways to convert quap into Markov chains. We need STAN programming.
+
+## Special case of the Metropolis algorithm:
+
+Move to another island (direction will depend on HEAD or TAIL) or stays in current island, will depend on what is RANDOMLY taken from a bag with shells and stones representing the pop size of the current island vs the proposed island. 
+
+Shell= move, Stone= stay. The probability that he moves is equal to the numbers of shells divided by the original number of stones.
+
+Number of shells equal to the relative pop size of the proposal island. Ex= 9
+Number of stones equal to the relative pop size of the current island. Ex= 10
+
+If there are more shells, the King moves to the proposal island. But, is there are more stones, he discard as many stones as the number of shells. In the example, he discard 9 stones and end up with 1 stone and 10 shells.
+
+
+OBJECTIVE: Drawn sampples from an unknown distribution.
+
+In real world:
+
+- Island are paremeters
+
+- Pop size are the posterior probabilities at each parameter value
+
+- weeks (of journey) are the samples taken from the posterior
+
+
+
+### Gibbs sampling
+
+When the proposal distribution is not symmetric (as a bias in the coin flipping that makes go on average to a specific direction in the Markov king example)
+
+One can get an estimate of the posterior from Gibbs sampling with many fewer samples tha a comparable Metropolis approach.
+
+Adaptive proposals = The distribution of the parameter values adjusts itself.
+
+Gibbs sampling uses particular combinations of prior distributions and likelihoods known as CONJUGATE PAIRS. 
+
+
+### High dimensional problems:
+
+When we sample from a high dimensional distributionl we wont get any points near the mode (hill and sphere examples). As we go farther from the peak (the mode) there is more probability, until we reach maximun probability (less height but more area in a 2D dimension) at some radial distance from the peak and then it is reduced again.
+
+We need MCMC because it focus on the entire posterior distribution at the same time and not in 1 or few dimensions at a time like Metropolis or Gibbs. 
+
+
+## Hamiltonian Monte Carlo (HMC)
+
+Metropolis and Gibbs are highly random procedures. They try new parameters values and compared them with the current values. Gibbs reduced the randomness gy gaining knowledge of the target distribution.
+
+In HMC, the parameter values are much more efficient. Does not need as many samples from the posterior.
+
+
+
+## Easy HMC: ulam
+
+
+```{r}
+library(rethinking)
+data(rugged)
+d <- rugged
+d$log_gdp <- log(d$rgdppc_2000)
+dd <- d[ complete.cases(d$rgdppc_2000) , ]
+dd$log_gdp_std <- dd$log_gdp / mean(dd$log_gdp)
+dd$rugged_std <- dd$rugged / max(dd$rugged)
+dd$cid <- ifelse( dd$cont_africa==1 , 1 , 2 )
+
+```
+
+
+```{r}
+
+dat_slim <- list(
+    log_gdp_std = dd$log_gdp_std,
+    rugged_std = dd$rugged_std,
+    cid = as.integer( dd$cid )
+)
+str(dat_slim)
+
+
+m9.1 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains = 4, cores = 4 )
+
+
+show (m9.1)
+precis( m9.1 , depth=2 )
+
+```
+
+```{r}
+pairs(m9.1)
+traceplot(m9.1, chains=1)
+trankplot(m9.1)
+```
+
+
+### Practice
+
+## 9E1.
+
+Simple Metropolis algorithm requires symmetric distributions,
+
+## 9E2.
+
+Efficient = good estimate of the posterior with many fewer samples than Metropolis approach.
+
+Gibbs uses particular combinations of priors distributions and likelihoods (conjugate pairs) to compute adaptive proposals (proposal =  parameter values) in which the parameter values adjusts itself. It is then, less random that Metropolis approach.
+
+Limitations:
+
+1) Conjugate priors are not always needed.
+
+2) For complex models, Gibbs gets stuck in the high correlated regions of the posterior meaning a narrow ridge of high probability combinations. It will also get stuck because of CONCENTRATION OF MEASURE. This means that the probability mass of a high-dimension distribution is always far from the mode of the distribution.
+
+
+## 9E3.
+
+HMC requires continuous parameters.
+
+HMC draws trajectories (when sampling the posterior) based on leapfrog steps and the step size (warmup in Stan), where individual paths produce independent samples from the posterior. Discrete parameters will not allow drawing trajectories.
+
+## 9E4.
+
+Effective number of samples is an estimate of the number of independent samples from the posterior distribution. Is the length of a chain with no autocorrelation.
+The raw number of samples is the total number of itinerations, considering autocorrelated samples.
+
+
+## 9E5.
+
+Rhat should aproximate 1 indicating the convergence of Markov chain to the target distribution.
+
+## 9E6.
+
+Characteristics of a good trace and rank plots, wirh effective sampling from the posterior.
+
+- Stationarity: The path of each chain should stay within the same high-probability portion of the posterior. The traces stick around a stable central tendency.
+
+
+- Good mixing: The chain explore the full region.
+
+
+- Convergence: Multiple independent chains stick around the same region of high probability.
+
+
+Rank plots: Take all the samples for each individual parameter and rank them
+
+
+
+
+```{r}
+traceplot(m9.1, chains=1)
+trankplot(m9.1)
+```
+
+
+```{r}
+
+# Model with different priors
+
+m9.1.bis <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 0 , 10000) ,
+        b[cid] ~ dnorm( 0 , 10000) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=4, cores = 4 )
+
+precis( m9.1.bis , depth=2 )
+
+traceplot(m9.1.bis, chains=1)
+
+trankplot(m9.1.bis)
+```
+
+
+
+## 9M1. 
+
+```{r}
+
+# Model with uniform distribution of sigma.
+
+m9.6 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1) ,
+        b[cid] ~ dnorm( 0 , 0.3) ,
+        sigma ~ dunif( 0, 1 )
+    ) , data=dat_slim, chains = 4, cores = 4)
+
+precis( m9.6 , depth=2 )
+
+traceplot(m9.6, chains=1)
+
+trankplot(m9.6)
+```
+
+
+a2, b2 and sigma are more efficiently sampled (grater n_eff when using sigma~dunif(0,1)?
+
+
+## 9M2.
+
+```{r}
+m9.7 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dexp( 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains = 4, cores = 4 )
+
+
+show (m9.7)
+precis( m9.7 , depth=2 )
+traceplot(m9.7, chains=1)
+trankplot(m9.7)
+```
+
+
+## 9M3.
+
+```{r}
+
+# Default warmup and itinerations
+
+m9.8 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , warmup=500, iter = 1000 )
+
+
+show (m9.8)
+precis( m9.8 , depth=2 )
+```
+
+
+```{r}
+# Less warmup and same number of itinerations
+
+m9.9 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , warmup=200, iter = 1000 )
+
+
+show (m9.9)
+precis( m9.9 , depth=2 )
+```
+
+
+
+
+
+
