@@ -1,0 +1,209 @@
+---
+title: "Chap 9 Stat rethink Anabelle"
+author: "Anabelle Laurent"
+date: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(rstan)
+data(rugged)
+d <- rugged
+d$log_gdp <- log(d$rgdppc_2000)
+dd <- d[ complete.cases(d$rgdppc_2000) , ]
+dd$log_gdp_std <- dd$log_gdp / mean(dd$log_gdp)
+dd$rugged_std <- dd$rugged / max(dd$rugged)
+dd$cid <- ifelse( dd$cont_africa==1 , 1 , 2 )
+
+```
+
+**Metropolis algotithm** works when the proba of proposing A from B is the same as the proba of proposing B from A. The proposal distribution is symmetric while it not for **Gibbs sampling**. With Gibbs sampling, you get a good estimate of the posterior with many fewer samples than Metropolis approach. Gibbs sampling computes these adaptive proposals using particular combinations of prior distributions and likelihoods known as *conjugate pairs*. Metropolis and Gibbs can get stuck in a narrow region of parameter space.  
+
+**Hamiltonian Monte Carlo** is more efficient for proposals but computationally costly. It needs less samples so less computer time. Autocorrelation is pretty low. The warmup phase try to figure out which step size eplore the posterior efficiently. During the warmup, no samples are produce (while the bun-in phase in Gibbs produce samples). The no-U-TURM SAMPLER (or NUTS) figures out the number of leapfrog steps. The NUTS uses the shape of the posterior to infer when the path is turning around.  
+
+Remember that some posterior distributions are very difficult to sample from, for any algorithms. 
+
+### Practice 
+
+### E6
+Criteria for healthy Markov chains:  
+1) stationarity  
+2) good mixing  
+3) convergence 
+
+```{r warning=FALSE, message=FALSE}
+dat_slim <- list(
+    log_gdp_std = dd$log_gdp_std,
+    rugged_std = dd$rugged_std,
+    cid = as.integer( dd$cid )
+)
+str(dat_slim)
+
+m9.1 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=4 , cores=4 )
+```
+
+```{r  warning=FALSE, message=FALSE}
+traceplot(m9.1)
+```
+```{r warning=FALSE, message=FALSE}
+nonhealthy <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.0001 ) ,
+        b[cid] ~ dnorm( 0 , 0.0003 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=4 , cores=4 )
+```
+
+```{r}
+traceplot(nonhealthy)
+```
+
+We can see that the trace for sigma is malfunctioning! Also n_eff is pretty small  
+
+### E7
+```{r}
+trankplot(m9.1)
+trankplot(nonhealthy)
+```
+
+### M1
+```{r warning=FALSE, message=FALSE}
+modM1<- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dunif(0,1)
+    ) , data=dat_slim , chains=4 , cores=4 )
+```
+
+```{r}
+pairs(m9.1)
+pairs(modM1)
+```
+The dunif prior for sigma has a undectible influence on the posterior distribution.   
+
+### M.2
+```{r warning=FALSE, message=FALSE}
+modM2<- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dexp( 0.3 ) ,
+        sigma ~ dunif(0,1)
+    ) , data=dat_slim , chains=4 , cores=4 )
+```
+
+```{r}
+pairs(modM2)
+```
+posterior distribution of b.2 is positive. The dexp prior gives more importance to positive values than dnorm(0,0.3)   
+
+###M.3
+
+```{r warning=FALSE, message=FALSE}
+modM3 <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=4 , cores=4 , iter=1000)
+```
+```{r}
+precis(modM3,depth = 2)
+```
+It seems working with the default value (niter=1000). We have 4 chains so 2000 samples (because half is for warmup).  
+
+```{r warning=FALSE, message=FALSE}
+modM3bis <- ulam(
+    alist(
+        log_gdp_std ~ dnorm( mu , sigma ) ,
+        mu <- a[cid] + b[cid]*( rugged_std - 0.215 ) ,
+        a[cid] ~ dnorm( 1 , 0.1 ) ,
+        b[cid] ~ dnorm( 0 , 0.3 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=dat_slim , chains=4 , cores=4 , iter=500)
+precis(modM3bis,depth = 2)
+```
+It is not working when iter=500 as the effective sample size is too low (see error message). Rhat is still okay (see traceplot for convergence). 
+
+```{r}
+traceplot(modM3bis)
+```
+
+###H1
+```{r warning=FALSE, message=FALSE}
+mp <- ulam(
+    alist(
+      a ~ dnorm( 1 , 0.1 ) ,
+      b ~ dcauchy( 0 ,1 )
+    ), data=list(y=1),chains=1,iter=2000)
+precis(mp)
+traceplot(mp)
+```
+
+ESS was too low so I updated the model mp with iter=2000 (was still too low). As it has no expected value, we can see some spikes looking at the traceplot of parameter b. 
+
+### H2
+```{r warning=FALSE, message=FALSE}
+data(WaffleDivorce)
+d <- WaffleDivorce
+d$D <- standardize( d$Divorce )
+d$M <- standardize( d$Marriage )
+d$A <- standardize( d$MedianAgeMarriage )
+sd( d$MedianAgeMarriage )
+
+dat_d<- list(
+    A = d$A,
+    M= d$M,
+    D=d$D
+)
+str(dat_d)
+
+
+m5.1 <- ulam(
+    alist(
+        D ~ dnorm( mu , sigma ) ,
+        mu <- a + bA * A ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bA ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = dat_d , chains=3,log_lik=TRUE)
+
+m5.2 <- ulam(
+    alist(
+       D ~ dnorm( mu , sigma ) ,
+        mu <- a + bM * M ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = dat_d , chains=3,log_lik=TRUE)
+
+m5.3 <- ulam(
+    alist(
+D ~ dnorm( mu , sigma ) ,
+        mu <- a + bM*M + bA*A ,
+        a ~ dnorm( 0 , 0.2 ) ,
+        bM ~ dnorm( 0 , 0.5 ) ,
+        bA ~ dnorm( 0 , 0.5 ) ,
+        sigma ~ dexp( 1 )
+    ) , data = dat_d , chains=3,log_lik=TRUE)
+
+compare(m5.1,m5.2,m5.3,func = WAIC)  
+```
+
