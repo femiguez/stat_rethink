@@ -218,3 +218,19 @@ f_shade_priors(mymodel = m_tul3, mycolor = "dodgerblue")
 ```
 
 # HELP `r emo::ji("sweat")`
+
+```{r tulip wat pos shade neg}
+
+m_tul3 <- quap(
+  alist(
+    blooms_std <- dnorm(mu, sigma),
+    mu <- a + bw*water_cent - exp(lbs)*shade_cent + bws*water_cent*shade_cent,
+    a ~ dnorm(0.5, 0.25),
+    bw ~ dnorm(0.5, 0.25), #--make this always positive
+    lbs ~ dnorm(0, 0.25), #--make this always pos, but it's subtracted (?)
+    bws ~ dnorm(0, 0.25),
+    sigma ~ dexp(1)
+  ), data = dt)
+
+f_shade_priors(mymodel = m_tul3, mycolor = "red")
+```

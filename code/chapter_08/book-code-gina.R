@@ -191,6 +191,12 @@ compare(m8.1, m8.2, m8.3, func = PSIS)
 #--look at the k values from teh PSIS
 plot(PSIS (m8.3, pointwise = TRUE)$k)
 
+raw_d %>% 
+  mutate(k = PSIS (m8.3, pointwise = TRUE)$k) %>% 
+  filter(k > 0.2) %>% 
+  ggplot(aes(reorder(country, k), k)) + 
+  geom_point() + 
+  coord_flip()
 
 #--make the interaction plot, try to include the PIs this time
 mu.O <- link(m8.3, data = data.frame(cid = 2, rugged_std = rugged_seq))
