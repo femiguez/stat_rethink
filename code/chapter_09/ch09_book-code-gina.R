@@ -5,7 +5,6 @@
 library(dplyr)
 library(tidyr)
 library(rethinking)
-theme_set(theme_bw())
 
 
 # ulam --------------------------------------------------------------------
@@ -58,11 +57,13 @@ m9.1 <- ulam(
   chains = 1
 )
 
+precis(m9.1, depth = 2)
+
 # taming a wild chain -----------------------------------------------------
 
 y <- c(-1, 1)
 
-#--does it have to be connected to the internet?
+#--didn't work, uninstalled rstan
 m9.2 <- ulam(
   alist(
     y ~ dnorm(mu, sigma),
@@ -70,3 +71,25 @@ m9.2 <- ulam(
     alpha ~ dnorm(0, 1000), #--uninformative prior
     sigma ~ dexp(0.0001)
   ), data = list(y = y), chains = 3)
+
+pairs(m9.2@stanfit)
+
+traceplot(m9.2)
+trankplot(m9.2)
+
+#--tame the priors
+m9.3 <- ulam(
+  alist(
+    y ~ dnorm(mu, sigma),
+    mu <- alpha, 
+    alpha ~ dnorm(0, 10), #--uninformative prior
+    sigma ~ dexp(1)
+  ), data = list(y = y), chains = 3)
+
+#--did we do better?
+precis(m9.2)
+precis(m9.3)
+
+#yeah
+traceplot(m9.3)
+trankplot(m9.3)
