@@ -55,5 +55,9 @@ Notes
 
 [Chapter 9: Markov chain Monte Carlo](https://femiguez.github.io/stat_rethink/notes/chapter_09/ch_09_MCMC.html)
 
+[Chapter 9: Mariana Notes](https://femiguez.github.io/stat_rethink/notes/chapter_09/Stat-rethink_Chap9_mariana.html)
+
+[Chapter 9: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_09/Chap9_Anabelle.html)
+
 
 
