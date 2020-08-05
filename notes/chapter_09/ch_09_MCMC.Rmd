@@ -346,3 +346,76 @@ m8.3.brms4 <-
 ## Priors
 prior_summary(m8.3.brms4)
 ```
+
+# Appendix
+
+Metropolis with mean and sigma
+
+```{r}
+metrop <- function(x, n = 1e2, start = list(theta = 1, sigma = 1)){
+  
+  theta.old <- start$theta
+  sigma.old <- start$sigma
+  
+  theta.vec <- numeric(n)
+  sigma.vec <- numeric(n)
+  
+  for(i in 1:n){
+    
+    theta.new <- theta.old + rnorm(1)
+    sigma.new <- sigma.old + rnorm(1)
+    
+    if(sigma.new < 0) sigma.new <- sigma.old
+    
+    f.0 <- sum(dnorm(x, mean = theta.old, sd = sigma.old, log = TRUE))
+    f.1 <- sum(dnorm(x, mean = theta.new, sd = sigma.new, log = TRUE))
+    
+    U <- runif(1)
+    
+    ## As stated above f.0 is the log-likelihood, thus exp(f.0) would be the 
+    ## likelihood. If I take the log of R then 
+    ## log(R) = log(exp(f.1)) - log(exp(f.0))
+    ## This simplifies to f.1 - f.0
+    R <- f.1 - f.0
+    
+    if(R > log(U)){
+      theta.old <- theta.new
+      sigma.old <- sigma.new
+    } 
+  
+    theta.vec[i] <- theta.old 
+    sigma.vec[i] <- sigma.old
+  }
+  return(list(theta = theta.vec, sigma = sigma.vec))
+}
+```
+
+Test the Metropolis algorithm
+
+```{r}
+set.seed(12345)
+y <- rnorm(25, 20, 5)
+
+mm <- metrop(y)
+
+## Plotting the trace for theta
+plot(mm$theta, xlab = "iteration", ylab = "theta", type = "l")
+abline(h = mean(y), col = "red", lty = 2)
+
+## Trace plot for sigma
+plot(mm$sigma, xlab = "iteration", ylab = "sigma", type = "l")
+abline(h = sd(y), col = "red", lty = 2)
+
+## More samples
+mm2 <- metrop(y, n = 15e3)
+
+## Distribution
+hist(mm2$theta[1e3:15e3], xlab = "theta", main = "Metropolis theta", 
+     freq = FALSE, breaks = 30)
+abline(v = mean(y), col = "red", lwd = 3)
+
+hist(mm2$sigma[1e3:15e3], xlab = "sigma", main = "Metropolis sigma", 
+     freq = FALSE, breaks = 30)
+abline(v = sd(y), col = "red", lwd = 3)
+
+```
