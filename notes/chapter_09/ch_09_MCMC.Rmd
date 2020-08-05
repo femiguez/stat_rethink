@@ -45,7 +45,9 @@ U \sim \text{Unif}(0,1) \\
 $$
 
 ```{r}
-metrop <- function(x, n = 1e2, sigma = 1, start = 1){
+## I fix sigma to simplify the probelm and make it about
+## estimating a single parameter
+metrop <- function(x, n = 1e2, start = 1, sigma = 1){
   
   theta.old <- start
   
@@ -55,19 +57,18 @@ metrop <- function(x, n = 1e2, sigma = 1, start = 1){
     
     theta.new <- theta.old + rnorm(1)
     
-    f.0 <- sum(exp(dnorm(x, mean = theta.old, sd = sigma, log = TRUE)))
-    f.1 <- sum(exp(dnorm(x, mean = theta.new, sd = sigma, log = TRUE)))
-    
-    R <- f.1 / f.0
-    
-    if(!is.finite(R)){
-      theta.vec[i] <- theta.old 
-      next
-    } 
+    f.0 <- sum(dnorm(x, mean = theta.old, sd = sigma, log = TRUE))
+    f.1 <- sum(dnorm(x, mean = theta.new, sd = sigma, log = TRUE))
     
     U <- runif(1)
     
-    if(R > U){
+    ## As stated above f.0 is the log-likelihood, thus exp(f.0) would be the 
+    ## likelihood. If I take the log of R then 
+    ## log(R) = log(exp(f.1)) - log(exp(f.0))
+    ## This simplifies to f.1 - f.0
+    R <- f.1 - f.0
+    
+    if(R > log(U)){
       theta.old <- theta.new
     } 
   
@@ -76,6 +77,7 @@ metrop <- function(x, n = 1e2, sigma = 1, start = 1){
   return(list(theta = theta.vec))
 }
 
+set.seed(1234)
 y <- rnorm(20, 15, 3)
 
 ## The mean is easy 
@@ -91,11 +93,19 @@ plot(mm$theta, xlab = "iteration", ylab = "theta", type = "l")
 abline(h = mean(y), col = "red", lty = 2)
 
 ## Getting the distribution
-mm2 <- metrop(y, n = 5e3, start = 7)
+mm2 <- metrop(y, n = 5e3, start = 7, sigma = sd(y))
 ## Computing the mean
 mean(mm2$theta[500:5e3])
+## Confidence interval
+quantile(mm2$theta[500:5e3], probs = c(0.025, 0.975))
 ## Distribution
 hist(mm2$theta[500:5e3], xlab = "theta", main = "Metropolis mean", freq = FALSE)
+## Comparing densities
+ry <- rnorm(1e4, mean = mean(y), sd = sd(y)/sqrt(length(y)))
+plot(density(mm2$theta[500:5e3]), main = "", xlab = "theta", col = "red")
+lines(density(ry), col = "blue")
+mtext("blue = normal", col = "blue", at = c(12.5, 1))
+mtext("red = metropolis", col = "red", at = c(15, 1))
 ```
 
 ## Practice problems
