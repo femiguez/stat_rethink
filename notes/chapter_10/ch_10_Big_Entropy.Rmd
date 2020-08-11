@@ -102,8 +102,11 @@ In the Bayesian framework, the main R packages are: rethinking, MCMCglmm, MCMCpa
 
 The Hessian (https://en.wikipedia.org/wiki/Hessian_matrix) is important for trying to determine the curvature of a function and it is related to the standard deviations (standard errors) of parameters in models which assume normality. You should care about it if you use **optim** and want to know the precision for parameter estimates or if you are using **quadp** and want to know how it works. If **optim** has problems with the Hessian, it most likely means that there is something wrong with your model. Maybe the data you have does not allow you to constrain the model parameters properly or you made a mistake writing down the function. It is less likely that there is something wrong with the algorithm. As we are learning now (SR) for some models we need to use MCMC, since normal approximations (**optim** or **quadp**) are not well suited for. MCMC, as we use it here, does not directly compute a Hessian, but just gives you an empirical distributions of the paramters of interest. (See example *metropolis* in the previous chapter's notes).
 
+![Hessian-matrix](./figs/Hessian-matrix.png)
+
 ```{r}
-## Conceptual understanding of Hessian
+## Conceptual and practical understanding of the Hessian
+set.seed(123)
 y <- rnorm(20, 15, 2)
 mean.y <- mean(y)
 se.y <- sd(y)/sqrt(length(y))
@@ -127,3 +130,5 @@ m2LL.se.mu <- sqrt(solve(m2LL.op$hessian)[1,1] * m2LL.op$par[2])
 ## likelihood, but we need to calculate the Hessian
 print(list(se.y = se.y, m2LL.se.mu = m2LL.se.mu))
 ```
+
+One note is that the -2 log-likelihood is (a component) of the **deviance** (smaller values are better) especially used in GLMs. https://en.wikipedia.org/wiki/Deviance_(statistics) says that, strictly, **deviance** does not equal -2 log-likelihood. As SR explains, the reason for the -2 is that it makes likelihood ratio tests have a chi-squared distribution. Bayesians do not care about LRTs.
