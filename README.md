@@ -59,5 +59,7 @@ Notes
 
 [Chapter 9: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_09/Chap9_Anabelle.html)
 
+[Chapter 10: Big Entropy](https://femiguez.github.io/stat_rethink/notes/chapter_10/ch_10_Big_Entropy.html)
+
 
 
