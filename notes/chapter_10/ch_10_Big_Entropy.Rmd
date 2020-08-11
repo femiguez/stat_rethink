@@ -90,7 +90,7 @@ $$
 y = X\beta + \epsilon
 $$
 
-$y$ is the response or outcome variable (it can be a matrix with multiple responses - multivariate, but a bit outside what we are doing here.) $X$ is a design matrix which can accommodate: analysis of variance, linear regression, multiple linear regression, analysis of covariance, a simple t-test, polynomials, weighted regression and more. $\beta$ is a vector of parameters (which are not always easy to interpret) and $\epsilon$ is the vector of residuals. Models fitted with **lm** can produce confidence intervals, predictions, prediction intervals and more. The SR book is giving us a glimpse into the different ways that the design matrix can be constructed. There is no unique way and, how it is set up, has implications in terms of the interpretation of our models. In addition, this model is very, very robust (in many but not all respects) to often encountered problems such as departures from normality, unequal variances, multicollinearity, lack of independence, etc. This does not mean that we should not use better models when we recognize the limitations of "standard" linear models. Finally, resampling methods (e.g. Bootstrap) allow us to approximate distributions of quantities of interest which are not immediately available from this models. 
+$y$ is the response or outcome variable (it can be a matrix with multiple responses - multivariate, but a bit outside what we are doing here.) $X$ is a design matrix which can accommodate: analysis of variance, linear regression, multiple linear regression, analysis of covariance, a simple t-test, polynomials, weighted regression and more. $\beta$ is a vector of parameters (which are not always easy to interpret) and $\epsilon$ is the vector of residuals. Models fitted with **lm** can produce confidence intervals, predictions, prediction intervals and more. The SR book is giving us a glimpse into the different ways that the design matrix can be constructed. There is no unique way and, how it is set up, has implications in terms of the interpretation of our models. In addition, this model is very, very robust (in many but not all respects) to often encountered problems such as departures from normality, unequal variances, multicollinearity, lack of independence, etc. This does not mean that we should not use better models when we recognize the limitations of "standard" linear models. Finally, resampling methods (e.g. Bootstrap) allow us to approximate distributions of quantities of interest which are not immediately available from these models. (See **boot** package. Function **boot_lm** in package **nlraa** simplifies a bit bootstrapping objects of class **lm**). 
 
 **nlme** this package allows for fitting frequentist mixed-effects models and it is covered in depth in Pinheiro and Bates. The biggest weakness of **lm** is that it cannot handle lack of independence and nonlinear relationships. **nlme** can do this, but it has its weaknesses too.
 
@@ -102,3 +102,28 @@ In the Bayesian framework, the main R packages are: rethinking, MCMCglmm, MCMCpa
 
 The Hessian (https://en.wikipedia.org/wiki/Hessian_matrix) is important for trying to determine the curvature of a function and it is related to the standard deviations (standard errors) of parameters in models which assume normality. You should care about it if you use **optim** and want to know the precision for parameter estimates or if you are using **quadp** and want to know how it works. If **optim** has problems with the Hessian, it most likely means that there is something wrong with your model. Maybe the data you have does not allow you to constrain the model parameters properly or you made a mistake writing down the function. It is less likely that there is something wrong with the algorithm. As we are learning now (SR) for some models we need to use MCMC, since normal approximations (**optim** or **quadp**) are not well suited for. MCMC, as we use it here, does not directly compute a Hessian, but just gives you an empirical distributions of the paramters of interest. (See example *metropolis* in the previous chapter's notes).
 
+```{r}
+## Conceptual understanding of Hessian
+y <- rnorm(20, 15, 2)
+mean.y <- mean(y)
+se.y <- sd(y)/sqrt(length(y))
+dy <- function(y, mu, sigma) -2 * sum(dnorm(y, mean = mu, sd = sigma, log = TRUE))
+thetas <- seq(10, 20, by = 0.5)
+LL <- sapply(1:length(thetas), function(i) dy(y = y, mu = thetas[i], sigma = sd(y)))
+plot(thetas, LL, type = "l", xlab = "theta", ylab = "-2 log-likelihood")
+## The lowest point in the -2 * LL function is where this function is minimized
+## meaning that the likelihood is maximized
+## The curvature is related to the precision. A very sharp curve means our 
+## estimate is very precise. Conversely, a wide curve would mean our estimate
+## is not very precise.
+## How can we use optim to get this?
+## This next function calculates the minus 2 log-likelihood
+m2LL <- function(cfs, y) -2 * sum(dnorm(y, mean = cfs[1], sd = cfs[2], log = TRUE))
+m2LL.op <- optim(c(1,1), m2LL, y = y, hessian = TRUE)
+m2LL.op
+## From the Hessian we can calculate the standard error for the mean
+m2LL.se.mu <- sqrt(solve(m2LL.op$hessian)[1,1] * m2LL.op$par[2])
+## This shows that we can obtain the precision for mu using maximum
+## likelihood, but we need to calculate the Hessian
+print(list(se.y = se.y, m2LL.se.mu = m2LL.se.mu))
+```
