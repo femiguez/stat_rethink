@@ -1,0 +1,134 @@
+---
+title: "Big Entropy and GLMs"
+author: "Fernando Miguez"
+date: "8/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Big Entropy
+
+## Maximum Entropy
+
+The average lop-probability is the information entropy.
+
+$$
+H(p) = -\Sigma_i \; p_i \log(p_i)
+$$
+
+On page 305 he introduces the generalized normal distribution
+
+$$
+Pr(y|\mu, \alpha, \beta) = \frac{\beta}{2 \alpha \Gamma(1/\beta)} e ^ {-(|y - \mu|/\alpha)^\beta}
+$$
+He explains that the information entropy of this function is maximized when $\beta$ = 2. This is an interesting way of looking at the normal distribution. 
+
+## Generalized linear models
+
+In this chapter GLMs are introduced a bit more formally.
+
+Standard regression assuming normality
+$$
+y_i \sim Normal(\mu_i, \sigma) \\
+\mu_i = \alpha + \beta x_i
+$$
+
+### Binomial distribution
+
+$$
+y_i \sim Binomial(n, p_i) \\
+f(p_i) = \alpha + \beta(x_i - \bar{x})
+$$
+### Exponential family
+
+Basically, just because the Gaussian (Normal) distribution work "unreasonably" well in a vast number of cases, it does not mean that other distributions are more appropriate for some applications. These are just some of the more common ones:
+
+* Gamma
+* Normal
+* Exponential
+* Poission
+* Binomial
+
+For the binomial the most common "link" function is the logit
+
+$$
+\text{logit}(p_i) = \log \frac{p_i}{1 - p_i}
+$$
+The inverse of this function is:
+
+$$
+p_i = \frac{\exp(\alpha + \beta x_i)}{1 + \exp(\alpha + \beta x_i)}
+$$
+Which is commonly called the "inverse-logit" or "logistic".
+
+### Parameter Interactions
+
+On page 319 it is explained that in GLMs "parameters interact with themselves". What this means is that while for LMs the effect of a parameter is the same for different levels of a prediction (other parameters being constant), for GLMs this is not the case. The magnitude of the effect of a parameter depends on the level of the predictor. While for some values of the predictor the parameter might have a large effect, for others, the effect might be small. This is a feature which is shared with nonlinear models.
+
+# Answering Gina's questions
+
+## Bayesian vs. Frequentist
+
+In the frequntist world we are trying to justify our methods based on the idea that we are studying processes that could be repeated many, many times. While this is certainly reasonable in many situations, it does not always work. Frequentist methods are computationally faster and often agree, numerically, with Bayesian methods.
+
+In the Bayesian world we try to think about our current understanding of how the world works (set priors) and confront this understanding with the next set of data that we acquire (actual data). We then proceed to update our understanding by combining the prior and the probability of the data under the assumptions of the model we set up (likelihood). The posterior reflects this updated understanding of the world. 
+
+Most scientists and statisticians today claim that the Bayesian way is more consistent with our philosophy of science. Part of the issue, from a practical point of view, is that often the two approaches result in similar answers and the truly crucial decisions (the ones which affect us humans) need to be made outside of statistical considerations (small worlds and large worlds - chapter 2). Every decision in life is a risk-reward balance and it often requires more than data, math and statistics. However, making good decisions, while taking into account uncertainty, is where statistics meet the real world. 
+
+It is also worth pointing out that many problems today are only successfully approached using Bayesian approaches, but these tend to be very advanced difficult problems which most of you do not encounter as frequently. Actually, proper calibration of crop models can probably benefit from Bayesian approaches. One solution is to do it "by hand" or use the literature to set parameters, but setting priors and using some type of MCMC approach will provide a much more consistent accounting of uncertainty. Not everyone appreciates uncertainty. If you are a politician you will do better lying and being confident than if you respond the way scientists respond ("it depends").
+
+So far, the most important lessons I take from this book is that you should think about the system you are studying deeply. This is, if you want to do better science. Possibly, using DAGs and generating predictions from your priors. This seems like a painful exercise, but it will provide you with a deeper understanding and, as a result, ask better questions, do better science and, as an inevitable consequence, become rich and famous.
+
+## R packages and functions
+
+**lm** base R, does "general linear models". In reality, this is not "simple" as McElreath claims on page 196. It is a super powerful function which can fit an enourmous variety of models. It basically fits the following model
+
+$$
+y = X\beta + \epsilon
+$$
+
+$y$ is the response or outcome variable (it can be a matrix with multiple responses - multivariate, but a bit outside what we are doing here.) $X$ is a design matrix which can accommodate: analysis of variance, linear regression, multiple linear regression, analysis of covariance, a simple t-test, polynomials, weighted regression and more. $\beta$ is a vector of parameters (which are not always easy to interpret) and $\epsilon$ is the vector of residuals. Models fitted with **lm** can produce confidence intervals, predictions, prediction intervals and more. The SR book is giving us a glimpse into the different ways that the design matrix can be constructed. There is no unique way and, how it is set up, has implications in terms of the interpretation of our models and parameters. In addition, this model is very, very robust (in many but not all respects) to often encountered problems such as departures from normality, unequal variances, multicollinearity, lack of independence, etc. This does not mean that we should not use better models when we recognize the limitations of "standard" linear models. Finally, resampling methods (e.g. Bootstrap) allow us to approximate distributions of quantities of interest which are not immediately available from these models. (See **boot** package. Function **boot_lm** in package **nlraa** simplifies a bit bootstrapping objects of class **lm**). 
+
+**nlme** this package allows for fitting frequentist mixed-effects models and it is covered in depth in Pinheiro and Bates. The biggest weakness of **lm** is that it cannot handle lack of independence and nonlinear relationships. **nlme** can do this, but it has its weaknesses too.
+
+**lme4** has two main advantages. One, it can fit models with millions of observations, which **nlme** is not well suited for. Two, the function **glmer** can fit "generalized linear mixed models" which can accomodate binomial, Poission, Gamma and other distributions. The function **confint** can be used to obtain confidence intervals for the parameters of interest. In addition, **bootMer** can be used to bootstrap the model and derive the distribution for some statistics of interest. Today, the package **glmmTMB** provides similar functionality and many advantages over **lme4**. It can fit a wider range of models using other distributions: beta-binomial, zero-inflated Poission and others. What **lme4** does not provide by default are *p-values*, but as you have been learning from SR, *p-values* are not necessary for good science and they are probably detrimental. The technical reason why **lme4** does not produce *p-values* is complicated and not worth going into in my opinion. Much better to question your model using counter-factual plots for example and reporting confidence intervals of the parameters of interest.
+
+In the Bayesian framework, the main R packages are: rethinking, MCMCglmm, MCMCpack, rstanarm and brms. We are learning how to use rethinking. **rstanarm** is great in many ways, but I prefer the flexibility of **brms**. **rstanarm** makes it very easy to fit certain Bayesian models. 
+
+### Should we care about the Hessian? (page 44)
+
+The Hessian (https://en.wikipedia.org/wiki/Hessian_matrix) is important for trying to determine the curvature of a function and it is related to the standard deviations (standard errors) of parameters in models which assume normality. You should care about it if you use **optim** and want to know the precision for parameter estimates or if you are using **quadp** and want to know how it works. If **optim** has problems with the Hessian, it most likely means that there is something wrong with your model. Maybe the data you have does not allow you to constrain the model parameters properly or you made a mistake writing down the function. It is less likely that there is something wrong with the algorithm. As we are learning now (SR) for some models we need to use MCMC, since normal approximations (**optim** or **quadp**) are not well suited for. MCMC, as we use it here, does not directly compute a Hessian, but just gives you an empirical distributions of the paramters of interest. (See example *metropolis* in the previous chapter's notes).
+
+![Hessian-matrix](./figs/Hessian-matrix.png)
+
+```{r}
+## Conceptual and practical understanding of the Hessian
+set.seed(123)
+y <- rnorm(20, 15, 2)
+mean.y <- mean(y)
+se.y <- sd(y)/sqrt(length(y))
+dy <- function(y, mu, sigma) -2 * sum(dnorm(y, mean = mu, sd = sigma, log = TRUE))
+thetas <- seq(10, 20, by = 0.5)
+LL <- sapply(1:length(thetas), function(i) dy(y = y, mu = thetas[i], sigma = sd(y)))
+plot(thetas, LL, type = "l", xlab = "theta", ylab = "-2 log-likelihood")
+## The lowest point in the -2 * LL function is where this function is minimized
+## meaning that the likelihood is maximized
+## The curvature is related to the precision. A very sharp curve means our 
+## estimate is very precise. Conversely, a wide curve would mean our estimate
+## is not very precise.
+## How can we use optim to get this?
+## This next function calculates the minus 2 log-likelihood
+m2LL <- function(cfs, y) -2 * sum(dnorm(y, mean = cfs[1], sd = cfs[2], log = TRUE))
+m2LL.op <- optim(c(1,1), m2LL, y = y, hessian = TRUE)
+m2LL.op
+## From the Hessian we can calculate the standard error for the mean
+m2LL.se.mu <- sqrt(solve(m2LL.op$hessian)[1,1] * m2LL.op$par[2])
+## This shows that we can obtain the precision for mu using maximum
+## likelihood, but we need to calculate the Hessian
+print(list(se.y = se.y, m2LL.se.mu = m2LL.se.mu))
+```
+
+One note is that the -2 log-likelihood is (a component) of the **deviance** (smaller values are better) especially used in GLMs. https://en.wikipedia.org/wiki/Deviance_(statistics) says that, strictly, **deviance** does not equal -2 log-likelihood. As SR explains, the reason for the -2 is that it makes likelihood ratio tests have a chi-squared distribution. Bayesians do not care about LRTs.

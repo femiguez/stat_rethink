@@ -15,6 +15,99 @@ library(brms)
 
 # Markov chain Monte Carlo
 
+https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo
+
+> A Markov chain is a stochastic model describing a sequence of possible events in which the probability of each event depends only on the state attained in the previous event
+
+## Simple Metropolis
+
+Let's sketch a simple example of a Metropolis algorithm for a single parameter
+
+First step, we choose a starting point for our parameter, generate *noise* from a random normal and add it to our parameter
+
+$$
+\theta_0 \\
+\epsilon \sim N(0,1) \\
+\theta_1 = \theta_0 + \epsilon
+$$
+Now compute the Metropolis ratio, $f$ is a function which should be proportional to the likelihood and $x$ is the data. Note, this method could be used to calculate a simple mean even. 
+
+$$
+R = \frac{f(x | \theta_1)}{f(x | \theta_0)}
+$$
+
+Note that when $R > 1$ it means that, according to our function $f$, $\theta_1$ is more plausible under our assumptions than $\theta_0$. This would mean that, at least, $\theta_1$ is a better guess than $\theta_0$. We don't want to only accept better values of $\theta$ every single time. So what we do is generate a uniform random number $[0,1]$ and accept the new $\theta$ if $R$ is greater than that random number. This means that sometimes we will accept some new values for $\theta$ which are actually worse. This is needed so that we don't get stuck at the maximum posterior density.
+
+$$
+U \sim \text{Unif}(0,1) \\
+\text{if} \; R \geq U \; \text{accept} \\
+\text{otherwise} \; \text{reject}
+$$
+
+```{r}
+## I fix sigma to simplify the probelm and make it about
+## estimating a single parameter
+metrop <- function(x, n = 1e2, start = 1, sigma = 1){
+  
+  theta.old <- start
+  
+  theta.vec <- numeric(n)
+  
+  for(i in 1:n){
+    
+    theta.new <- theta.old + rnorm(1)
+    
+    f.0 <- sum(dnorm(x, mean = theta.old, sd = sigma, log = TRUE))
+    f.1 <- sum(dnorm(x, mean = theta.new, sd = sigma, log = TRUE))
+    
+    U <- runif(1)
+    
+    ## As stated above f.0 is the log-likelihood, thus exp(f.0) would be the 
+    ## likelihood. If I take the log of R then 
+    ## log(R) = log(exp(f.1)) - log(exp(f.0))
+    ## This simplifies to f.1 - f.0
+    R <- f.1 - f.0
+    
+    if(R > log(U)){
+      theta.old <- theta.new
+    } 
+  
+    theta.vec[i] <- theta.old 
+  }
+  return(list(theta = theta.vec))
+}
+
+set.seed(1234)
+y <- rnorm(20, 15, 3)
+
+## The mean is easy 
+mean(y)
+## Confidence interval
+confint(lm(y ~ 1))
+
+## Using Metropolis
+mm <- metrop(y, n = 100, start = 10, sigma = sd(y))
+
+## Plotting the trace
+plot(mm$theta, xlab = "iteration", ylab = "theta", type = "l")
+abline(h = mean(y), col = "red", lty = 2)
+
+## Getting the distribution
+mm2 <- metrop(y, n = 5e3, start = 7, sigma = sd(y))
+## Computing the mean
+mean(mm2$theta[500:5e3])
+## Confidence interval
+quantile(mm2$theta[500:5e3], probs = c(0.025, 0.975))
+## Distribution
+hist(mm2$theta[500:5e3], xlab = "theta", main = "Metropolis mean", freq = FALSE)
+## Comparing densities
+ry <- rnorm(1e4, mean = mean(y), sd = sd(y)/sqrt(length(y)))
+plot(density(mm2$theta[500:5e3]), main = "", xlab = "theta", col = "red")
+lines(density(ry), col = "blue")
+mtext("blue = normal", col = "blue", at = c(12.5, 1))
+mtext("red = metropolis", col = "red", at = c(15, 1))
+```
+
 ## Practice problems
 
 ### 9M1
@@ -252,4 +345,77 @@ m8.3.brms4 <-
       seed = 9)
 ## Priors
 prior_summary(m8.3.brms4)
+```
+
+# Appendix
+
+Metropolis with mean and sigma
+
+```{r}
+metrop <- function(x, n = 1e2, start = list(theta = 1, sigma = 1)){
+  
+  theta.old <- start$theta
+  sigma.old <- start$sigma
+  
+  theta.vec <- numeric(n)
+  sigma.vec <- numeric(n)
+  
+  for(i in 1:n){
+    
+    theta.new <- theta.old + rnorm(1)
+    sigma.new <- sigma.old + rnorm(1)
+    
+    if(sigma.new < 0) sigma.new <- sigma.old
+    
+    f.0 <- sum(dnorm(x, mean = theta.old, sd = sigma.old, log = TRUE))
+    f.1 <- sum(dnorm(x, mean = theta.new, sd = sigma.new, log = TRUE))
+    
+    U <- runif(1)
+    
+    ## As stated above f.0 is the log-likelihood, thus exp(f.0) would be the 
+    ## likelihood. If I take the log of R then 
+    ## log(R) = log(exp(f.1)) - log(exp(f.0))
+    ## This simplifies to f.1 - f.0
+    R <- f.1 - f.0
+    
+    if(R > log(U)){
+      theta.old <- theta.new
+      sigma.old <- sigma.new
+    } 
+  
+    theta.vec[i] <- theta.old 
+    sigma.vec[i] <- sigma.old
+  }
+  return(list(theta = theta.vec, sigma = sigma.vec))
+}
+```
+
+Test the Metropolis algorithm
+
+```{r}
+set.seed(12345)
+y <- rnorm(25, 20, 5)
+
+mm <- metrop(y)
+
+## Plotting the trace for theta
+plot(mm$theta, xlab = "iteration", ylab = "theta", type = "l")
+abline(h = mean(y), col = "red", lty = 2)
+
+## Trace plot for sigma
+plot(mm$sigma, xlab = "iteration", ylab = "sigma", type = "l")
+abline(h = sd(y), col = "red", lty = 2)
+
+## More samples
+mm2 <- metrop(y, n = 15e3)
+
+## Distribution
+hist(mm2$theta[1e3:15e3], xlab = "theta", main = "Metropolis theta", 
+     freq = FALSE, breaks = 30)
+abline(v = mean(y), col = "red", lwd = 3)
+
+hist(mm2$sigma[1e3:15e3], xlab = "sigma", main = "Metropolis sigma", 
+     freq = FALSE, breaks = 30)
+abline(v = sd(y), col = "red", lwd = 3)
+
 ```
