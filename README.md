@@ -61,5 +61,7 @@ Notes
 
 [Chapter 10: Big Entropy](https://femiguez.github.io/stat_rethink/notes/chapter_10/ch_10_Big_Entropy.html)
 
+[Chapter 11: God Spiked The Integers](https://femiguez.github.io/stat_rethink/notes/chapter_10/ch_11_God_Spiked_The_Integers.html)
+
 
 

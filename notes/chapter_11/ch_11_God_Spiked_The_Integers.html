@@ -373,6 +373,15 @@ summary {
 <h1>Binomial, Poisson and Multinomial Regression</h1>
 <p>Richard starts with the analogy of the tidal prediction machine. The reason this is a good analogy is that although the machine is used to forecast the cycles of the water levels (i.e. tides) and - apparently - it works; it is virtually impossible to understand what is going on, but inspecting the gears inside the machine.</p>
 <p>GLMs have complex internal structures in which the values of the parameters are not easy to interpret. Instead we need to turn to asking questions about what the model thinks. This book promotes creating counter-factual plots, which is very reasonable. An important lesson is that we do not want the predctions to agree too closely with the data because then we are surely overfitting. What we want, even if we are interested in inference more than in prediction, is a model that captures the regular features in the data.</p>
+<div id="priors" class="section level2">
+<h2>Priors</h2>
+<p>Another important lesson from this chapter is that so-called flat priors which can be used in linear models, are not uninformative when it comes to GLMs. The first clear example is on page 328 (Figure 11.3). The black line with a diffuse prior puts a lot of density at the extremes (zero or one), while a more concetrated normal puts more density closer to zero.</p>
+<p><strong>Relative Shark and Absolute Deer</strong>: Another one of his <em>fun</em> analogies to describe the difference between relative (shark) and absolute (deer) risks.</p>
+</div>
+<div id="data-aggregation-and-structure" class="section level2">
+<h2>Data aggregation and structure</h2>
+<p>Another lesson from the chapter is about how categorical data can be structured. Yes/no, 0/1, black/white responses can be recorded individually or in aggregate. For example, you could record whether each individual student is accepted into a program (yes/no) or you can just have the totals (say 100 accepted, 700 rejected). If there is no information loss, then, I guess, aggregation should not affect the analysis. Although, we need to be careful about this (pg. 340).</p>
+</div>
 </div>
 
 
