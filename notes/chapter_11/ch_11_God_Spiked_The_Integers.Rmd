@@ -1,0 +1,16 @@
+---
+title: "God Spiked The Integers"
+author: "Fernando Miguez"
+date: "8/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Binomial, Poisson and Multinomial Regression
+
+Richard starts with the analogy of the tidal prediction machine. The reason this is a good analogy is that although the machine is used to forecast the cycles of the water levels (i.e. tides) and - apparently - it works; it is virtually impossible to understand what is going on, but inspecting the gears inside the machine. 
+
+GLMs have complex internal structures in which the values of the parameters are not easy to interpret. Instead we need to turn to asking questions about what the model thinks. This book promotes creating counter-factual plots, which is very reasonable. An important lesson is that we do not want the predctions to agree too closely with the data because then we are surely overfitting. What we want, even if we are interested in inference more than in prediction, is a model that captures the regular features in the data. 
