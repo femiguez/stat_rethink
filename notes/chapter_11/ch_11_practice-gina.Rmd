@@ -1,0 +1,344 @@
+---
+title: "God Spiked the Integers, and the Punch"
+author: "Gina Nichols"
+date: "8/18/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE)
+library(rethinking)
+library(tidyverse)
+library(cowplot)
+library(emo)
+theme_set(theme_bw())
+```
+
+# Easy
+
+## E1
+
+logodds = log(p/(1-p))
+
+Lower chance than 50/50 is negative log-odds
+If p = 0.35, logodds = `r round(log(0.35/(1-0.35)), 2)`
+
+A 50% chance should mean a log-odds of 0 - the chances of the two are the same.
+If p = 0.5, logodds = `r round(log(0.5/(1-0.5)), 2)`
+
+Higher than 50/50 is positive logodds
+If p = 0.75, logodds = `r round(log(0.75/(1-0.75)), 2)`
+
+## E2
+
+If logodds = 3.2, p = `r round(exp(3.2)/(1+exp(3.2)), 2)`
+
+On some page he talks about this but I can't find it. 
+
+## E3 `r emo::ji("help")`
+
+I think it means that a unit increase in the predictor vastly increases the probability of the event. Maybe by  `r round(exp(1.7)/(1+exp(1.7)), 2)`%, but I'm not sure. 
+
+## E4
+
+Offsets make it possible to have things in different units. Say I measured weeds in a m-2 area, but my undergrad is a true American and she measured them in a ft-2 area. I can still use the data!
+
+# Medium
+
+## M1 `r emo::ji("help")`
+
+Liklihood is related to entropy. In aggregated form of data, there are more ways to see each 'observation', so the entropy is higher, which I think changes what the likelihood looks like. 
+
+## M2
+
+One unit increase in the predictor results in an increase of almost 2 orders of magnitude in the response variable. 
+
+## M3
+
+It makes it so p is always between 0-1. **But it can never be 1, right? You can't divide by 0.**
+
+## M4
+
+The exponential of a value is always above 0, and counts are always above 0. 
+
+## M5 `r emo::ji("help")`
+
+Why would you use a logit link for the mean of a Poisson GLM? 
+It means you expect the mean of a count variable to be between 0-1? No, I cannot think of a situation where you'd expect this. 
+
+## M6 
+*Constraints for which the binomial and Poisson have max entropy?*
+
+Binomial - When 'a count outcome *y* for which each observation arises from *n* trials and with a constant expected value *np*.
+
+Poisson - When the mean is equal to the variance. Seems more like a special case of the normal distribution, rather than the binomial distribution. But if you're in a binomial situation and n is very large, you have a Poisson
+
+## M7 
+
+*Create m11.4 using both quap and ulam*
+
+```{r dat, include=F}
+
+data("chimpanzees")
+d <- chimpanzees %>% 
+  mutate(trt = 1 + prosoc_left + 2*condition,
+         treatment = trt)
+```
+
+```{r ulam, results="hide"}
+
+dat_list <- 
+  list(
+    pulled_left = d$pulled_left,
+    actor = d$actor,
+    trt = as.integer(d$trt) )
+
+m11.4 <- ulam(
+  alist(
+    pulled_left ~ dbinom(1, p),
+    logit(p) <- a[actor] + b[trt],
+    a[actor] ~ dnorm(0, 1.5),
+    b[trt] ~ dnorm(0, 0.5) 
+  ), data = dat_list, chains = 4, log_lik = T )
+```
+
+
+```{r quap}
+
+m11.4quap <- quap(
+  alist(
+    pulled_left ~ dbinom(1, p),
+    logit(p) <- a[actor] + b[trt],
+    a[actor] ~ dnorm(0, 1.5),
+    b[trt] ~ dnorm(0, 0.5) 
+  ), data = d)
+
+```
+
+
+
+```{r}
+
+rns <- rownames(precis(m11.4, depth = 2) )
+
+precis(m11.4, depth = 2) %>% 
+  as.data.frame() %>% 
+  mutate(mod = "ulam") %>% 
+  bind_rows(
+    precis(m11.4quap, depth = 2) %>% 
+      as.data.frame() %>% 
+      mutate(mod = "quap")
+  ) %>% 
+  mutate(xparm = rep(rns, 2)) %>% 
+  janitor::clean_names() %>% 
+  ggplot(aes(mod, mean, color = mod)) + 
+  geom_point() + 
+  geom_linerange(aes(ymin = x94_5_percent, ymax = x5_5_percent)) +
+  facet_grid(.~xparm) + 
+  labs(title = "ulam and quap create almost identical estimates")
+```
+
+They are identical except for **old lefty**. Try using a terrible prior (normal(0, 10) for the actor intercept. 
+
+```{r ulam2, results="hide"}
+
+m11.4x <- ulam(
+  alist(
+    pulled_left ~ dbinom(1, p),
+    logit(p) <- a[actor] + b[trt],
+    a[actor] ~ dnorm(0, 10),
+    b[trt] ~ dnorm(0, 0.5) 
+  ), data = dat_list, chains = 4, log_lik = T )
+```
+```{r}
+
+m11.4quapx <- quap(
+  alist(
+    pulled_left ~ dbinom(1, p),
+    logit(p) <- a[actor] + b[trt],
+    a[actor] ~ dnorm(0, 10),
+    b[trt] ~ dnorm(0, 0.5) 
+  ), data = d)
+
+rns <- rownames(precis(m11.4x, depth = 2) )
+
+precis(m11.4x, depth = 2) %>% 
+  as.data.frame() %>% 
+  mutate(mod = "ulam") %>% 
+  bind_rows(
+    precis(m11.4quapx, depth = 2) %>% 
+      as.data.frame() %>% 
+      mutate(mod = "quap")
+  ) %>% 
+  mutate(xparm = rep(rns, 2)) %>% 
+  janitor::clean_names() %>% 
+  ggplot(aes(mod, mean, color = mod)) + 
+  geom_point() + 
+  geom_linerange(aes(ymin = x94_5_percent, ymax = x5_5_percent)) +
+  facet_grid(.~xparm) + 
+  labs(title = "ulam had a terrible time with that prior and old lefty")
+```
+
+Why does MCMC have a harder time? It goes wandering, I guess. 
+
+# M8
+
+Use the Kline data but drop Hawaii. 
+
+```{r, results="hide"}
+data(Kline)
+d2 <- Kline %>% 
+  mutate(P = scale(log(population)),
+         contact_id = ifelse(contact == "high", 2, 1))
+
+dat2 <- list(
+  T = d2$total_tools,
+  P = d2$P,
+  cid = d2$contact_id
+)
+
+m11.10 <- ulam(
+  alist(
+    T ~ dpois( lambda ),
+    log(lambda) <- a[cid] + b[cid]*P,
+    a[cid] ~ dnorm( 3, 0.5 ),
+    b[cid] ~ dnorm( 0, 0.2 )
+  ), data = dat2, chains = 4, log_lik = TRUE )
+```
+
+
+```{r}
+d2out <- Kline %>% 
+  mutate(P = scale(log(population)),
+         contact_id = ifelse(contact == "high", 2, 1)) %>% 
+  filter(culture != "Hawaii")
+
+dat2out <- list(
+  T = d2out$total_tools,
+  P = d2out$P,
+  cid = d2out$contact_id
+)
+
+m11.10out <- ulam(
+  alist(
+    T ~ dpois( lambda ),
+    log(lambda) <- a[cid] + b[cid]*P,
+    a[cid] ~ dnorm( 3, 0.5 ),
+    b[cid] ~ dnorm( 0, 0.2 )
+  ), data = dat2out, chains = 4, log_lik = TRUE )
+```
+
+```{r}
+
+rns2 <- rownames(precis(m11.10, depth = 2) )
+rns3 <- rownames(precis(m11.10out, depth = 2) )
+
+precis(m11.10, depth = 2) %>% 
+  as.data.frame() %>% 
+  mutate(mod = "HI") %>% 
+  bind_rows(
+    precis(m11.10out, depth = 2) %>% 
+      as.data.frame() %>% 
+      mutate(mod = "noHI")
+  ) %>% 
+  mutate(xparm = c(rns2, rns3)) %>% 
+  janitor::clean_names() %>% 
+  ggplot(aes(mod, mean, color = mod)) + 
+  geom_point() + 
+  geom_linerange(aes(ymin = x94_5_percent, ymax = x5_5_percent)) +
+  facet_grid(.~xparm) + 
+  labs(title = "1 is low contact, 2 is high. Makes sense 1 is affected more by removal.")
+```
+
+# Hard
+
+## H4
+
+```{r}
+data("NWOGrants")
+gr <-
+  NWOGrants %>% 
+  mutate(gid = ifelse(gender == "m", 1, 2),
+         deptid = as.numeric(as.factor(discipline)))
+
+gr %>% 
+  ggplot(aes(gid, awards)) + 
+  geom_line(color = "red") + 
+  geom_line(aes(y = applications), color = "black") + 
+  scale_x_continuous(breaks = c(1, 2), labels = c("M", "F")) +
+  facet_grid(.~discipline) + 
+  labs(title = "Females apply for less grants in some fields")
+```
+
+```{r}
+
+mh4 <- quap(
+  alist(
+    awards ~ dbinom( applications, p ),
+    logit(p) <- a[gid],
+    a[gid] ~ dnorm(0, 1.5)
+  ), data = gr )
+
+precis(mh4, depth = 2)
+```
+
+Look at differences on scale that makes sense
+```{r}
+post <- extract.samples(mh4)
+diff_a <- post$a[,1] - post$a[,2]
+diff_p <- inv_logit(post$a[,1]) - inv_logit(post$a[,2])
+precis(list (diff_a = diff_a, diff_p= diff_p))
+```
+
+Men are 1-5% more likely to be funded. 
+
+
+But what if we ask if it's different within fields?
+
+```{r}
+
+mh4b <- quap(
+  alist(
+    awards ~ dbinom( applications, p ),
+    logit(p) <- a[gid] + delta[deptid],
+    a[gid] ~ dnorm(0, 1.5),
+    delta[deptid] ~ dnorm(0, 1.5)
+  ), data = gr )
+
+precis(mh4b, depth = 2)
+post <- extract.samples(mh4b)
+diff_a <- post$a[,1] - post$a[,2]
+diff_p <- inv_logit(post$a[,1]) - inv_logit(post$a[,2])
+precis(list (diff_a = diff_a, diff_p= diff_p))
+```
+
+Look at things sorted by overall applications
+
+```{r}
+gr %>% 
+  group_by(discipline) %>% 
+  mutate(totaps = sum(applications),
+         pctaw = awards/totaps) %>% 
+  arrange(totaps) %>% 
+  ggplot(aes(gid, pctaw)) + 
+  geom_point(aes(size = totaps, color = gender)) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("M", "F"), expand = c(1, 1)) +
+  facet_grid(.~discipline) + 
+  labs(title = "Females apply for less grants in some fields")
+
+gr %>% 
+  group_by(discipline) %>% 
+  mutate(totaps = sum(applications),
+         pctaw = awards/totaps) %>% 
+  arrange(totaps) %>% 
+  ggplot(aes(reorder(discipline, totaps), pctaw)) + 
+  geom_point(aes(size = totaps, color = gender)) +
+  #scale_x_continuous(breaks = c(1, 2), labels = c("M", "F"), expand = c(1, 1)) +
+#  facet_grid(.~discipline) + 
+  labs(title = "Females apply for less grants in some fields") + 
+  theme(axis.text.x = element_text(angle = 45))
+
+
+```
+
