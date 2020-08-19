@@ -1,0 +1,116 @@
+---
+title: "Stat_rethink Chapter 9"
+author: "Mariana CHiozza"
+date: "8/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# God Spiked the Integers
+
+
+## 11.1 Binomial Regression
+
+### 11.1.1 Logistic regression.
+
+Prosocial chimpanzees example.
+
+HOW MUCH DIFFERENCE DOES THE TREATMENT MAKE IN THE PROBABILITY OF PULLING A LEVER?
+
+```{r}
+library(rethinking)
+data(chimpanzees)
+d <- chimpanzees
+
+d$treatment <- 1 + d$prosoc_left + 2*d$condition
+```
+
+Regularized priors and unknown posterior:
+
+
+```{r}
+
+# trimmed data list
+dat_list <- list(
+    pulled_left = d$pulled_left,
+    actor = d$actor,
+    treatment = as.integer(d$treatment) )
+
+
+m11.4 <- ulam(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 1.5 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list , chains=4 , log_lik=TRUE )
+precis( m11.4 , depth=2 )
+
+```
+
+
+### 11.1.2 Relative shark and absolute deer.
+
+PROPORTIONAL ODDS OF SWITCHING FROM ONE TREATMENT TO ANOTHER BY EXPONENTIATING THE PARAMETER OF INTEREST.
+
+
+### 11.1.3 Aggregated binomial.
+
+
+```{r}
+
+data(chimpanzees)
+d <- chimpanzees
+d$treatment <- 1 + d$prosoc_left + 2*d$condition
+d$side <- d$prosoc_left + 1 # right 1, left 2
+d$cond <- d$condition + 1 # no partner 1, partner 2
+d_aggregated <- aggregate(
+    d$pulled_left ,
+    list( treatment=d$treatment , actor=d$actor ,
+          side=d$side , cond=d$cond ) ,
+    sum )
+colnames(d_aggregated)[5] <- "left_pulls"
+
+
+dat <- with( d_aggregated , list(
+    left_pulls = left_pulls,
+    treatment = treatment,
+    actor = actor,
+    side = side,
+    cond = cond ) )
+
+m11.6 <- ulam(
+    alist(
+        left_pulls ~ dbinom( 18 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 1.5 ) ,
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat , chains=4 , log_lik=TRUE )
+
+precis(m11.6, depth = 2)
+
+```
+
+TO CALCULATE WAIC OR PSIS, USE A LOGISTIC REFRESSION DATA FORMAT, NOT AN AGGREGATED FORMAT.
+
+
+GRADUATE SCHOOL ADMISIONS EXAMPLE, TO SHOW HOW ADDING A FACTOR TO THE MODEL (DEPARTMENTS) CHANGE THE INFERENCE ABOUT HOW GENDER AFFECT THE ADMISSIONS.
+
+Q1: WHAT ARE THE AVERAGE PROBABILITIES OF ADMISSION FOR WOMEN AND MEN ACROSS ALL DEPARTMENTS?
+
+Q2: WHAT IS THE AVERAGE DIFFERENCE IN PROBABILITY OF ADMISSION BETWEEN WOMEN AND MEN WITHIN DEPARTMENTS?
+
+DEPARTMENT IS A CONFOUND. CONTROLLING THE DEPARTMENT REVEALS A MORE PLAUSIBLE DIRECT CAUSAL INFLUENCE OF GENDER.
+
+## Poisson Distribution
+
+When N is unknown or uncoutably large.
+
+Only 1 parameter, which is the expected value and the variance.
+
+### Negative binomial
+
+
