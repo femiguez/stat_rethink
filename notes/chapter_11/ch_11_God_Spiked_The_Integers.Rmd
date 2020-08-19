@@ -24,3 +24,38 @@ Another important lesson from this chapter is that so-called flat priors which c
 ## Data aggregation and structure
 
 Another lesson from the chapter is about how categorical data can be structured. Yes/no, 0/1, black/white responses can be recorded individually or in aggregate. For example, you could record whether each individual student is accepted into a program (yes/no) or you can just have the totals (say 100 accepted, 700 rejected). If there is no information loss, then, I guess, aggregation should not affect the analysis. Although, we need to be careful about this (pg. 340).
+
+## Helping Gina
+
+### E3
+
+Proportional odds is calculated by exponentiating the coefficient. So:
+
+```{r}
+exp(1.7)
+```
+
+This means that each unit change in the predictor variable multiplies the odds of the event by 5.5. To demystify this relationship a little, if the linear model L is the log-odds of the event, then the odds of the event are just exp(L). Now we want to compare the odds before and after increasing a predictor by one unit. We want to know how much the odds increase, as a result of the unit increase
+in the predictor. 
+We can use our dear friend algebra to solve this problem: 
+$$
+exp(\alpha + \beta x) Z = exp(\alpha + \beta (x + 1))
+$$
+
+The left side is the odds of the event, before increasing x. The Z represents the proportional change in odds that we’re going to solve for. It’s unknown value will make the left side equal to the right side. The right side is the odds of the event, after increasing x by 1 unit. So we just solve for Z now. The answer is $Z = exp(\beta)$. And that’s where the formula comes from.
+
+### M1
+
+The most basic reason is that aggregated binomial counts have to average overall of the orders, or permutations, that are consistent with the observed count. Disaggregated binomial counts, in 0/1 form, do not have to cope with order. So for example, if we flip 2 coins and observe one head and one tail, this is a count of 1 head in 2 trials. As aggregated data, the probability is:
+
+$$
+\frac{2!}{1!1!} p (1-p) = 2 p (1-p)
+$$
+
+where $p$ is the probability of a head on each trial. The fraction in front is the multiplicity (same as what was used in Chapter 9 to derive maximum entropy). It just says how many ways to get 1 head from 2 coins, in any order. But as disaggregated data, we instead just predict each coin separately and then multiply them together to get the joint probability of the data. So:
+
+$$
+p(1 − p)
+$$
+
+is the entire likelihood. So the aggregated data has an extra constant in front to handle all the permutations. This doesn’t influence inference, because the multiplicity constant isn’t a function of the parameter $p$. But it does influence the magnitude of the likelihood and log-likelihood.
