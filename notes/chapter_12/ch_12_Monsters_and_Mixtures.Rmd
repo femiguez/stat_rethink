@@ -1,0 +1,21 @@
+---
+title: "Monsters and Mixtures"
+author: "Fernando Miguez"
+date: "8/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Monsters and Mixtures
+
+Learning how to deal with:
+
+* Over-dispersed counts
+* Beta-Binomial model
+* Negative-binomial or gamma-Poisson
+* Zero-inflated outcomes
+* Ordered categorical outcomes
+* Ordered categorical predictors

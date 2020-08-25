@@ -44,13 +44,15 @@ f(p_i) = \alpha + \beta(x_i - \bar{x})
 $$
 ### Exponential family
 
-Basically, just because the Gaussian (Normal) distribution work "unreasonably" well in a vast number of cases, it does not mean that other distributions are more appropriate for some applications. These are just some of the more common ones:
+Basically, just because the Gaussian (Normal) distribution works "unreasonably" well in a vast number of cases, it does not mean that other distributions are more appropriate for some applications. These are just some of the more common ones:
 
 * Gamma
 * Normal
 * Exponential
 * Poission
 * Binomial
+
+(see figure on page 315).
 
 For the binomial the most common "link" function is the logit
 
@@ -90,11 +92,11 @@ $$
 y = X\beta + \epsilon
 $$
 
-$y$ is the response or outcome variable (it can be a matrix with multiple responses - multivariate, but a bit outside what we are doing here.) $X$ is a design matrix which can accommodate: analysis of variance, linear regression, multiple linear regression, analysis of covariance, a simple t-test, polynomials, weighted regression and more. $\beta$ is a vector of parameters (which are not always easy to interpret) and $\epsilon$ is the vector of residuals. Models fitted with **lm** can produce confidence intervals, predictions, prediction intervals and more. The SR book is giving us a glimpse into the different ways that the design matrix can be constructed. There is no unique way and, how it is set up, has implications in terms of the interpretation of our models and parameters. In addition, this model is very, very robust (in many but not all respects) to often encountered problems such as departures from normality, unequal variances, multicollinearity, lack of independence, etc. This does not mean that we should not use better models when we recognize the limitations of "standard" linear models. Finally, resampling methods (e.g. Bootstrap) allow us to approximate distributions of quantities of interest which are not immediately available from these models. (See **boot** package. Function **boot_lm** in package **nlraa** simplifies a bit bootstrapping objects of class **lm**). 
+$y$ is the response or outcome variable (it can be a matrix with multiple responses - multivariate, but a bit outside what we are doing here.) $X$ is a design matrix which can accommodate: analysis of variance, linear regression, multiple linear regression, analysis of covariance, a simple t-test, polynomials, weighted regression and more. $\beta$ is a vector of parameters (which are not always easy to interpret) and $\epsilon$ is the vector of residuals. Models fitted with **lm** can produce confidence intervals, predictions, prediction intervals and more. The SR book is giving us a glimpse into the different ways that the design matrix can be constructed. There is no unique way and, how it is set up, has implications in terms of the interpretation of our models and parameters. In addition, this model is very, very robust (in many but not all respects) to often encountered problems such as departures from normality, unequal variances, multicollinearity, lack of independence, etc. This does not mean that we should not use better models when we recognize the limitations of "standard" linear models. Finally, resampling methods (e.g. Bootstrap) allow us to approximate distributions of quantities of interest which are not immediately available from these models. (See **boot** package. Function **boot_lm** in package **nlraa** simplifies a bit bootstrapping objects of class **lm**). In **rstanarm** there is a function called **stan_lm** which is the equivalent version of **lm** but for the Bayesian framework. It requires that you set up priors somehow, for example by providing a prior $R^2$.
 
 **nlme** this package allows for fitting frequentist mixed-effects models and it is covered in depth in Pinheiro and Bates. The biggest weakness of **lm** is that it cannot handle lack of independence and nonlinear relationships. **nlme** can do this, but it has its weaknesses too.
 
-**lme4** has two main advantages. One, it can fit models with millions of observations, which **nlme** is not well suited for. Two, the function **glmer** can fit "generalized linear mixed models" which can accomodate binomial, Poission, Gamma and other distributions. The function **confint** can be used to obtain confidence intervals for the parameters of interest. In addition, **bootMer** can be used to bootstrap the model and derive the distribution for some statistics of interest. Today, the package **glmmTMB** provides similar functionality and many advantages over **lme4**. It can fit a wider range of models using other distributions: beta-binomial, zero-inflated Poission and others. What **lme4** does not provide by default are *p-values*, but as you have been learning from SR, *p-values* are not necessary for good science and they are probably detrimental. The technical reason why **lme4** does not produce *p-values* is complicated and not worth going into in my opinion. Much better to question your model using counter-factual plots for example and reporting confidence intervals of the parameters of interest.
+**lme4** has two main advantages. One, it can fit models with millions of observations, which **nlme** is not well suited for. Two, the function **glmer** can fit "generalized linear mixed models" which can accomodate binomial, Poission, Gamma and other distributions. The function **confint** can be used to obtain confidence intervals for the parameters of interest. In addition, **bootMer** can be used to bootstrap the model and derive the distributions for some statistics of interest. Today, the package **glmmTMB** provides similar functionality and many advantages over **lme4**. It can fit a wider range of models using other distributions: beta-binomial, zero-inflated Poission and others. What **lme4** does not provide by default are *p-values*, but as you have been learning from SR, *p-values* are not necessary for good science and they are probably detrimental. The technical reason why **lme4** does not produce *p-values* is complicated and not worth going into in my opinion. Much better to question your model using counter-factual plots for example and reporting confidence intervals of the parameters of interest.
 
 In the Bayesian framework, the main R packages are: rethinking, MCMCglmm, MCMCpack, rstanarm and brms. We are learning how to use rethinking. **rstanarm** is great in many ways, but I prefer the flexibility of **brms**. **rstanarm** makes it very easy to fit certain Bayesian models. 
 
@@ -131,4 +133,14 @@ m2LL.se.mu <- sqrt(solve(m2LL.op$hessian)[1,1] * m2LL.op$par[2])
 print(list(se.y = se.y, m2LL.se.mu = m2LL.se.mu))
 ```
 
-One note is that the -2 log-likelihood is (a component) of the **deviance** (smaller values are better) especially used in GLMs. https://en.wikipedia.org/wiki/Deviance_(statistics) says that, strictly, **deviance** does not equal -2 log-likelihood. As SR explains, the reason for the -2 is that it makes likelihood ratio tests have a chi-squared distribution. Bayesians do not care about LRTs.
+One note is that the -2 log-likelihood is (a component) of the **deviance** (smaller values are better) especially used in GLMs. https://en.wikipedia.org/wiki/Deviance_(statistics) says that, strictly, **deviance** does not equal -2 log-likelihood. As SR explains, the reason for the -2 is that it makes likelihood ratio tests have a chi-squared distribution. (SR pg. 210 - endnote 112). Bayesians do not care about LRTs.
+
+# Additional reading
+
+## p-values
+
+* https://www.nature.com/articles/d41586-019-00857-9
+
+* https://www.nature.com/articles/d41586-019-00969-2
+
+* https://statmodeling.stat.columbia.edu/2019/03/20/retire-statistical-significance-the-discussion/

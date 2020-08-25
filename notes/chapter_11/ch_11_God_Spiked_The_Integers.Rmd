@@ -1,0 +1,83 @@
+---
+title: "God Spiked The Integers"
+author: "Fernando Miguez"
+date: "8/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Binomial, Poisson and Multinomial Regression
+
+Richard starts with the analogy of the tidal prediction machine. The reason this is a good analogy is that although the machine is used to forecast the cycles of the water levels (i.e. tides) and - apparently - it works; it is virtually impossible to understand what is going on, but inspecting the gears inside the machine. 
+
+GLMs have complex internal structures in which the values of the parameters are not easy to interpret. Instead we need to turn to asking questions about what the model thinks. This book promotes creating counter-factual plots, which is very reasonable. An important lesson is that we do not want the predctions to agree too closely with the data because then we are surely overfitting. What we want, even if we are interested in inference more than in prediction, is a model that captures the regular features in the data. 
+
+## Priors
+
+Another important lesson from this chapter is that so-called flat priors which can be used in linear models, are not uninformative when it comes to GLMs. The first clear example is on page 328 (Figure 11.3). The black line with a diffuse prior puts a lot of density at the extremes (zero or one), while a more concetrated normal puts more density closer to zero. 
+
+**Relative Shark and Absolute Deer**: Another one of his *fun* analogies to describe the difference between relative (shark) and absolute (deer) risks.
+
+## Data aggregation and structure
+
+Another lesson from the chapter is about how categorical data can be structured. Yes/no, 0/1, black/white responses can be recorded individually or in aggregate. For example, you could record whether each individual student is accepted into a program (yes/no) or you can just have the totals (say 100 accepted, 700 rejected). If there is no information loss, then, I guess, aggregation should not affect the analysis. Although, we need to be careful about this (pg. 340).
+
+## Helping Gina
+
+### E3
+
+Question: If a coefficient in a Poisson regression model has a value 1.7, what does this imply about the change in the outcome?
+
+Proportional odds is calculated by exponentiating the coefficient. So:
+
+```{r}
+exp(1.7)
+```
+
+This means that each unit change in the predictor variable multiplies the odds of the event by 5.5. To demystify this relationship a little, if the linear model L is the log-odds of the event, then the odds of the event are just exp(L). Now we want to compare the odds before and after increasing a predictor by one unit. We want to know how much the odds increase, as a result of the unit increase in the predictor. 
+
+We can use our dear friend algebra to solve this problem: 
+$$
+\exp(\alpha + \beta x) Z = \exp(\alpha + \beta (x + 1))
+$$
+
+The left side is the odds of the event, before increasing x. The Z represents the proportional change in odds that we’re going to solve for. It’s unknown value will make the left side equal to the right side. The right side is the odds of the event, after increasing x by 1 unit. So we just solve for Z now. The answer is $Z = exp(\beta)$. And that’s where the formula comes from.
+
+### M1
+
+The most basic reason is that aggregated binomial counts have to average overall of the orders, or permutations, that are consistent with the observed count. Disaggregated binomial counts, in 0/1 form, do not have to cope with order. So for example, if we flip 2 coins and observe one head and one tail, this is a count of 1 head in 2 trials. As aggregated data, the probability is:
+
+$$
+\frac{2!}{1!1!} p (1-p) = 2 p (1-p)
+$$
+
+where $p$ is the probability of a head on each trial. The fraction in front is the multiplicity (same as what was used in Chapter 9 to derive maximum entropy). It just says how many ways to get 1 head from 2 coins, in any order. But as disaggregated data, we instead just predict each coin separately and then multiply them together to get the joint probability of the data. So:
+
+$$
+p(1 − p)
+$$
+
+is the entire likelihood. So the aggregated data has an extra constant in front to handle all the permutations. This doesn’t influence inference, because the multiplicity constant isn’t a function of the parameter $p$. But it does influence the magnitude of the likelihood and log-likelihood.
+
+### M5
+
+The problem suggests using a logit link in a Poisson model,like this: 
+
+$$
+y_i ∼ Poisson(\mu_i) \\
+logit(\mu_i) = α + \beta x_i
+$$
+
+This would bound the mean $\mu$ to lie between zero and one. With the addition of one more parameter however, it could bound it to lie between zero and any arbitrary maximum: 
+
+$$
+log \frac{\mu_i}{M - \mu_i} = \alpha + \beta x_i
+$$
+where M is a parameter that determines the maximum expected count.
+This sort of link looks funny. In practice you never see it, because if a count variable can reach
+a maximum, it is usually more appropriate to use a binomial likelihood together with the logit link. Remember, the premise with a Poisson likelihood is that it is really binomial, but the probability is very low and the number of trials very large. So any theoretical maximum count is never reached in the data.
+Using the logit link with a Poisson could make sense if you have reason to think that the influence of predictors on the mean diminishes eventually. That is, if you want to stop the exponential growth.
+

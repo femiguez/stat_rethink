@@ -1,0 +1,196 @@
+---
+title: "Chapter 11 Stat Rethink"
+author: "Anabelle Laurent"
+date: "8/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(emo)
+library(dplyr)
+library(ggplot2)
+```
+
+
+### M.7 `r emo::ji("monkey")`
+
+```{r}
+data(chimpanzees)
+d <- chimpanzees
+d$block_id <- d$block
+d$treatment <- 1L + d$prosoc_left + 2L*d$condition
+dat_list <- list(
+    pulled_left = d$pulled_left,
+    actor = d$actor,
+    block_id = d$block,
+    treatment = as.integer(d$treatment) )
+
+m11.4ulam <- ulam(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 1.5 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list , chains=4 , log_lik=TRUE )
+
+
+m11.4quap<-quap(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 1.5 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list )
+precis( m11.4ulam , depth=2 )
+precis( m11.4quap , depth=2 )
+```
+The individual intercepts are similar between quap and ulam.  
+
+```{r}
+m11.4ulam10 <- ulam(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 10 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list , chains=4 , log_lik=TRUE )
+
+
+m11.4quap10<-quap(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 10 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list )
+precis( m11.4ulam10 , depth=2 )
+precis( m11.4quap10 , depth=2 )
+```
+
+By relaxing the prior we get a very large credible interval for the chimpazee 2!
+
+### H.1
+
+```{r}
+m11.4ulam <- ulam(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a[actor] + b[treatment] ,
+        a[actor] ~ dnorm( 0 , 1.5 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list , chains=4 , log_lik=TRUE )
+
+m11.3ulam <- ulam(
+    alist(
+        pulled_left ~ dbinom( 1 , p ) ,
+        logit(p) <- a + b[treatment] ,
+        a ~ dnorm( 0 , 1.5 ),
+        b[treatment] ~ dnorm( 0 , 0.5 )
+    ) , data=dat_list ,chains=4 , log_lik=TRUE,iter=2000)
+
+compare( m11.4ulam , m11.3ulam , func=WAIC )
+```
+ESS was too low, I increased the number of iterations.  
+The model with the individual intercept has the lowest WAIC.  
+
+### H2.a `r emo::ji("eagle")`
+
+```{r}
+library(MASS)
+data(eagles)
+pir <- eagles
+head(eagles)
+```
+First we need to create dummy variables with 1 for large, 0 for small and 1 for adult, 0 for immature.  
+We need to transform the variables P (size of pirate `r emo::ji("pirate")`) ,A (age of the pirate) and V (size of the victim).  
+y = number of success  
+n = total number of trials  
+Then the probability is Y/n  
+
+```{r}
+library(fastDummies)
+pir2<-dummy_cols(pir, select_columns = c("P", "A","V"))
+head(pir2)
+pir2$success<-pir2$y/pir2$n
+```
+
+```{r}
+mod_pirate <- quap(alist(
+    y ~ dbinom(n, p),
+    logit(p) <- a + bp*P_L + ba*A_A + bv*V_L,
+    a ~ dnorm(0, 10),
+    bp ~ dnorm(0, 5),
+    bv ~ dnorm(0, 5),
+    ba ~ dnorm(0, 5)
+  ), data=pir2)
+precis(mod_pirate, depth=2 )
+
+mod_pirate_ulam <- ulam(alist(
+    y ~ dbinom(n, p),
+    logit(p) <- a + bp*P_L + ba*A_A + bv*V_L,
+    a ~ dnorm(0, 10),
+    bp ~ dnorm(0, 5),
+    bv ~ dnorm(0, 5),
+    ba ~ dnorm(0, 5)
+  ), data=pir2,chains=4 , log_lik=TRUE )
+precis(mod_pirate_ulam, depth=2 )
+plot(precis(mod_pirate_ulam))
+```
+
+### H2b
+
+If the victim is large, it negatively impact the number of successful attemps (bv parameter).  
+parameters bp and ba positively impact the number of successful attemps.  
+
+
+```{r}
+post <- extract.samples(mod_pirate_ulam)
+str(post)
+success <- inv_logit( post$a )
+plot( precis( as.data.frame(success) ) , xlim=c(0,1) )
+```
+
+Let's look at the observed data first
+```{r}
+pir2<-pir2 %>% mutate(category=paste0(P,A,V))
+pir2 %>% ggplot(aes(y=success,x=category,col="sim")) +geom_point() + theme_bw() 
+  
+```
+
+If an eagle is small + immature, he can keep trying `r emo::ji("laugh")`
+
+```{r}
+p_post <- link( mod_pirate_ulam )
+p_mu <- apply( p_post , 2 , mean )
+p_ci <- apply( p_post , 2 , PI )
+
+pir2 %>% ggplot(aes(y=success,x=category,col="sim")) +geom_point() + theme_bw() +
+  geom_point(y=p_mu, aes(col="pred")) 
+    scale_color_manual("Legend",
+                     values=c("red","blue"), 
+                     breaks = c("sim", "pred"),
+                     labels=c("observed success","predicted success"))
+
+```
+
+### H2.c
+
+```{r}
+mod_inter <- ulam(alist(
+    y ~ dbinom(n, p),
+    logit(p) <- a + bp*P_L + ba*A_A + bv*V_L + bpa*P_L*A_A,
+    a ~ dnorm(0, 10),
+    bp ~ dnorm(0, 5),
+    bv ~ dnorm(0, 5),
+    ba ~ dnorm(0, 5),
+    bpa ~ dnorm(0, 5)
+  ), data=pir2,chains=4 , log_lik=TRUE )
+precis(mod_inter, depth=2 )
+plot(precis(mod_inter))
+
+
+compare( mod_pirate_ulam , mod_inter , func=WAIC )
+```
+
