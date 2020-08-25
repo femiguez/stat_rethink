@@ -1,0 +1,79 @@
+---
+title: "Monsters and Mixtures"
+author: "Gina Nichols"
+date: "8/25/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE)
+library(rethinking)
+library(tidyverse)
+library(patchwork)
+library(emo)
+theme_set(theme_bw())
+```
+
+# Easy
+
+## E1 Ordered categorical vs categorical
+Categorical variables like gender (m/f/other) or race have no order. Ordered categorical variables have a natural sequence to them, but the distance between entries might not be equal. Depth of sleep might be an example. Light sleep, medium, and deep. 
+
+## E2 Link function of ordered logistic regression
+Ordered logistic regression employs a the log-cumulative odds. 
+
+## E3 What kind of inferential error do you make if you ignore zero-inflation? `r emo::ji("help")`
+You will underestimate the mean rate?
+
+## E4 Example of over- and under-dispersed counts `r emo::ji("help")`
+Heterogeneity in observations by some unknown (or known?) factor can cause over-dispersed counts. For example if you count the number of raccoons in your yard and don't account for your neighbor having a bbq and throwing out lots of chicken bones, you might get over-dispersion (more high values than you would've expected). **Could zero-inflation cause under-dispersed counts?**
+
+# Medium
+
+## M1 and M2 Compute log-cum-odds of prof productivity
+
+```{r}
+uni_prod <- tibble(
+  rating = c(1, 2, 3, 4),
+  tot = c(12, 36, 7, 41)
+) %>% 
+  mutate(
+    prop = tot/sum(tot)
+  )
+
+m1_hist <- 
+  uni_prod %>% 
+  ggplot(aes(rating, tot)) +
+  geom_col() + 
+  labs(title = "Super productive employees")
+
+m1_cumprop <- 
+  uni_prod %>% 
+  mutate(
+    cum_prop = cumsum(prop)
+  ) %>% 
+  ggplot(aes(rating, cum_prop)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(title = "Cumulative Proportions")
+
+m1_logcumodds <- 
+  uni_prod %>% 
+  mutate(
+    cum_prop = cumsum(prop),
+    cum_odds = cum_prop/(1 - cum_prop),
+    log_cum_odds = log(cum_odds)
+  ) %>% 
+  ggplot(aes(rating, log_cum_odds)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(title = "Log-Cumulative-Odds")
+
+m1_hist + m1_cumprop + m1_logcumodds
+
+```
+
+## M3 Can you construct a zero-inflated binomial distribution? `r emo::ji("help")`
+
+No. 
