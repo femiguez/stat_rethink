@@ -73,6 +73,6 @@ Notes
 
 [Chapter 12: Mariana notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/Stat-rethink_Chap12_mariana.html)
 
-[Chapter 12: Gina notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/ch_12_practice-gina.html)
+[Chapter 12: Gina notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/ch_12_practice-Gina.html)
 
 
