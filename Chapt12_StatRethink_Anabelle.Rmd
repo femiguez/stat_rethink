@@ -1,0 +1,165 @@
+---
+title: "Chap 12 Stat Rethink"
+author: "Anabelle Laurent"
+date: "8/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE)
+library(rethinking)
+library(tidyverse)
+library(cowplot)
+library(emo)
+theme_set(theme_bw())
+```
+
+ results="hide"
+
+When the observed variance exceed *Np(1-p)* with *Np* beign the expected value of a binomial, then we have overdispersion. It implies that omitted variable(s) is producing additional dispersion to the observed counts.  
+<p style="color:orange">Question 1: is the omitted variable the only reason to produce overdipersion? What about biological variation, error of measurement?</p>
+
+**Beta-binomial** estimates the distribution of probabilities of success instead of a single probability of success.  
+
+**Cumulative probability** is the probability of a value or *any smaller value*.  
+
+
+
+```{r}
+pbar <- 0.5
+theta <- 2
+curve( dbeta2(x,pbar,theta) , from=0 , to=1 ,
+    xlab="Different possible probability values" , ylab="Density" )
+mtext("theta=2")
+```
+When theta (shape parameter that describes how spread out is the distribution) =2, every proba from 0 to 1 is equally likely.  
+
+```{r}
+pbar <- 0.5
+theta <- 5
+curve( dbeta2(x,pbar,theta) , from=0 , to=1 ,
+    xlab="Different possible probability values" , ylab="Density" )
+mtext("theta=5")
+```
+
+When theta >2, the distribution of proba grows more concentrated.  
+
+```{r}
+pbar <- 0.5
+theta <- 1
+curve( dbeta2(x,pbar,theta) , from=0 , to=1 ,
+    xlab="Different possible probability values" , ylab="Density" )
+mtext("theta=1")
+```
+
+When theta<1, extreme proba near 0 an 1 are more likely than the mean probability.  
+
+
+<p style="color:orange">Question 2: Why binomial does not return a distribution? With the chain we can get a distribution of the outcome</p>  
+
+
+**Negative-binomial or gamma-Poisson** assumes that each Poisson count has its own rate. As Gamma-poisson expected more variation around the mean, a high influential data in Poisson becomes less influential with Gamma-Poisson.  
+
+##E4
+Overdispersion: you go to a shelter and you ask dogs to seat (n=10) (if the dog seats=success). As dogs in a shelter varies in age, sex, breed, history you can expect overdispersion.  
+Underdispersion: you go to a dog breeder already educating his dogs for adoption, you can expect a success most of the time.  
+
+## M1 & M2 
+ 
+
+```{r}
+rate<-c(rep(1,12),rep(2,36),rep(3,7),rep(4,41))
+
+# discrete proportion of each response value
+pr_k <- table( rate ) / 96
+
+# cumsum converts to cumulative proportions
+cum_pr_k <- cumsum( pr_k )
+
+logit <- function(x) log(x / (1 - x)) # convenience function
+logit(cum_pr_k)
+plot(1:4,logit(cum_pr_k),type="b",xlab="response",ylab="log-cumulative-odds")
+
+dplot<-data.frame(rate=c(1:4),cum_pr_k)
+
+dplot %>% ggplot() + 
+  geom_line(aes(x=c(1,2,3,4),y=cum_pr_k)) +
+  geom_point(aes(x=c(1,2,3,4),y=cum_pr_k),size=2) +
+  xlab("response") +
+  ylab("cumulative proportion")
+```
+
+## H1 `r emo::ji("tornado")`
+
+```{r}
+data(Hurricanes)
+d <- Hurricanes
+
+d %>% 
+  ggplot(aes(x = category)) +
+  geom_histogram(binwidth = 1/4, size = 0) +
+  xlab("Hurricane category") +
+  ylab("Frequency")
+
+d2<- d %>% group_by(category,female) %>% summarise (n=sum(deaths))
+ggplot(d2,aes(category,n,fill=as.factor(female)))+
+  geom_bar(stat="identity",position='dodge') +
+  ylab("number of deaths")
+
+d3<- d %>% group_by(femininity) %>% summarise (n=sum(deaths)) 
+ggplot(d3,aes(x=femininity,y=n))+ geom_point() +
+   ylab("number of deaths") +
+  xlab("femininity scale")
+```
+
+
+```{r, results="hide"}
+dat <- list(
+    D = d$deaths ,
+    F = d$femininity)
+
+# intercept only
+m1<- ulam(
+    alist(
+        D ~ dpois( lambda ),
+        log(lambda) <- a,
+        a ~ dnorm( 0 , 10)
+    ), data=dat , chains=4 , log_lik=TRUE )
+
+
+#  model with predictor
+m2 <- ulam(
+    alist(
+        D ~ dpois( lambda ),
+        log(lambda) <- a + b*F,
+        a~ dnorm( 0 , 10 ),
+        b~ dnorm( 0 , 5 )
+    ), data=dat , chains=4 , log_lik=TRUE )
+precis(m2, depth = 2)
+```
+```{r}
+precis(m1, depth = 2)
+precis(m2, depth = 2)
+compare( m1 , m2 , func=PSIS )
+```
+
+
+## H2
+
+```{r results="hide"}
+
+m3<- ulam(
+    alist(
+        D ~ dgampois( lambda , phi ),
+        log(lambda) <- a + b*F,
+        a ~ dnorm(0,10),
+        b ~ dnorm(0,5),
+        phi ~ dexp(1)
+    ), data=dat , chains=4 , log_lik=TRUE )
+```
+
+```{r}
+precis(m3,depth = 2)
+compare(m2,m3,func=PSIS)
+```
+
