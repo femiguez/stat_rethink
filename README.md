@@ -69,5 +69,10 @@ Notes
 
 [Chapter 11: Anabelle notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_11/Chap11_practice_Anabelle.html)
 
+[Chapter 12: Monsters and Mixtures](https://femiguez.github.io/stat_rethink/notes/chapter_12/ch_12_Monsters_and_Mixtures.html)
+
+[Chapter 12: Mariana notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/Stat-rethink_Chap12_mariana.html)
+
+[Chapter 12: Gina notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/ch_12_practice-gina.html)
 
 
