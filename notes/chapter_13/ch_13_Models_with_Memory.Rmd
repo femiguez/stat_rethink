@@ -1,0 +1,10 @@
+---
+title: "Models with Memory"
+author: "Fernando Miguez"
+date: "8/30/2020"
+output: html_document
+---
+
+# Models with Memory
+
+These type of models are also called: random-effects, multilevel, hierarchical and mixed-effects.
