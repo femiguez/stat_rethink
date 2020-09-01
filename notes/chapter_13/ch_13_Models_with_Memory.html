@@ -372,6 +372,131 @@ summary {
 <div id="models-with-memory" class="section level1">
 <h1>Models with Memory</h1>
 <p>These type of models are also called: random-effects, multilevel, hierarchical and mixed-effects.</p>
+<div id="experimental-design" class="section level2">
+<h2>Experimental Design</h2>
+<p>There are some terms used in the book which are not super clear. Hoping this helps</p>
+<div id="crossed-design" class="section level3">
+<h3>Crossed design</h3>
+<p>When factors are crossed we expect each level of a factor to occur with the levels of another factor. For example, in an agronomic experiment we might have two factors: tillage and fertilizer. Factor tillage might have levels: no-till (NT) and conventional tillage (CT). Factor fertilizer migth have levels: 0 N kg/ha or 100 N kg/ha. Since they are crossed these combinations will be in the experiment.</p>
+<pre class="r"><code>tillage &lt;- c(&quot;NT&quot;,&quot;CT&quot;)
+fertilizer &lt;- c(&quot;0 N kg/ha&quot;,&quot;100 N kg/ha&quot;)
+## They are crossed, so all levels are combined
+exp.design &lt;- expand.grid(tillage = tillage, fertilizer = fertilizer)
+kable(exp.design)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">tillage</th>
+<th align="left">fertilizer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">NT</td>
+<td align="left">0 N kg/ha</td>
+</tr>
+<tr class="even">
+<td align="left">CT</td>
+<td align="left">0 N kg/ha</td>
+</tr>
+<tr class="odd">
+<td align="left">NT</td>
+<td align="left">100 N kg/ha</td>
+</tr>
+<tr class="even">
+<td align="left">CT</td>
+<td align="left">100 N kg/ha</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>## You can also think about it this way
+exp.design.mat &lt;- matrix(c(&quot;NT - 0 N kg/ha&quot;, &quot;CT - 0 N kg/ha&quot;,
+                           &quot;NT - 100 N kg/ha&quot;, &quot;CT - 100 kg/ha&quot;),
+                         nrow = 2,
+                         dimnames = list(c(&quot;NT&quot;, &quot;CT&quot;),
+                                         c(&quot;0 N kg/ha&quot;,&quot;100 N kg/ha&quot;)))
+kable(exp.design.mat)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">0 N kg/ha</th>
+<th align="left">100 N kg/ha</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>NT</td>
+<td align="left">NT - 0 N kg/ha</td>
+<td align="left">NT - 100 N kg/ha</td>
+</tr>
+<tr class="even">
+<td>CT</td>
+<td align="left">CT - 0 N kg/ha</td>
+<td align="left">CT - 100 kg/ha</td>
+</tr>
+</tbody>
+</table>
+<p>When factors are “nested” their levels DO NOT occur across the level of the other factor. A classic example is blocks and sites in agronomic experiments. This means that block 1 in Site A is not the same as block 1 in site B. We now have</p>
+<pre class="r"><code>sites &lt;- c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;)
+blocks &lt;- 1:4
+exp.design.nested &lt;- expand.grid(site = sites, block = blocks)
+exp.design.nested.levels &lt;- with(exp.design.nested, paste(site, block, sep = &quot;_&quot;))
+kable(exp.design.nested.levels, caption = &quot;Nested levels&quot;)</code></pre>
+<table>
+<caption>Nested levels</caption>
+<thead>
+<tr class="header">
+<th align="left">x</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">A_1</td>
+</tr>
+<tr class="even">
+<td align="left">B_1</td>
+</tr>
+<tr class="odd">
+<td align="left">C_1</td>
+</tr>
+<tr class="even">
+<td align="left">A_2</td>
+</tr>
+<tr class="odd">
+<td align="left">B_2</td>
+</tr>
+<tr class="even">
+<td align="left">C_2</td>
+</tr>
+<tr class="odd">
+<td align="left">A_3</td>
+</tr>
+<tr class="even">
+<td align="left">B_3</td>
+</tr>
+<tr class="odd">
+<td align="left">C_3</td>
+</tr>
+<tr class="even">
+<td align="left">A_4</td>
+</tr>
+<tr class="odd">
+<td align="left">B_4</td>
+</tr>
+<tr class="even">
+<td align="left">C_4</td>
+</tr>
+</tbody>
+</table>
+<p>It is not always the case, but factors which we manipulate or that we are specifically interested in (sometimes called “fixed”) tend to be crossed and factors which account for variability in the data or which are not of direct interest (sometimes called “random”) tend to be nested. This is not a strict rule just vague guidance to help you think about it.</p>
+</div>
+<div id="frequentist-best-linear-unbiased-prediction-blup" class="section level3">
+<h3>Frequentist Best Linear Unbiased Prediction (BLUP)</h3>
+<p>Some other notes that might be of interest are here:</p>
+<p><a href="https://femiguez.github.io/paf/paf-3.html" class="uri">https://femiguez.github.io/paf/paf-3.html</a></p>
+</div>
+</div>
 </div>
 
 

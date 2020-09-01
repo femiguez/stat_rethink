@@ -5,6 +5,53 @@ date: "8/30/2020"
 output: html_document
 ---
 
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 # Models with Memory
 
 These type of models are also called: random-effects, multilevel, hierarchical and mixed-effects.
+
+## Experimental Design
+
+There are some terms used in the book which are not super clear. Hoping this helps
+
+### Crossed design
+
+When factors are crossed we expect each level of a factor to occur with the levels of another factor. For example, in an agronomic experiment we might have two factors: tillage and fertilizer. Factor tillage might have levels: no-till (NT) and conventional tillage (CT). Factor fertilizer migth have levels: 0 N kg/ha or 100 N kg/ha. Since they are crossed these combinations will be in the experiment.
+
+```{r}
+tillage <- c("NT","CT")
+fertilizer <- c("0 N kg/ha","100 N kg/ha")
+## They are crossed, so all levels are combined
+exp.design <- expand.grid(tillage = tillage, fertilizer = fertilizer)
+kable(exp.design)
+## You can also think about it this way
+exp.design.mat <- matrix(c("NT - 0 N kg/ha", "CT - 0 N kg/ha",
+                           "NT - 100 N kg/ha", "CT - 100 kg/ha"),
+                         nrow = 2,
+                         dimnames = list(c("NT", "CT"),
+                                         c("0 N kg/ha","100 N kg/ha")))
+kable(exp.design.mat)
+```
+
+When factors are "nested" their levels DO NOT occur across the level of the other factor. A classic example is blocks and sites in agronomic experiments. This means that block 1 in Site A is not the same as block 1 in site B. We now have
+
+```{r}
+sites <- c("A","B","C")
+blocks <- 1:4
+exp.design.nested <- expand.grid(site = sites, block = blocks)
+exp.design.nested.levels <- with(exp.design.nested, paste(site, block, sep = "_"))
+kable(exp.design.nested.levels, caption = "Nested levels")
+```
+
+It is not always the case, but factors which we manipulate or that we are specifically interested in (sometimes called "fixed") tend to be crossed and factors which account for variability in the data or which are not of direct interest (sometimes called "random") tend to be nested. This is not a strict rule just vague guidance to help you think about it. 
+
+
+### Frequentist Best Linear Unbiased Prediction (BLUP)
+
+Some other notes that might be of interest are here:
+
+https://femiguez.github.io/paf/paf-3.html
