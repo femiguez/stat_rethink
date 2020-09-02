@@ -1,0 +1,110 @@
+---
+title: "Stat_rethink Chapter 13"
+author: "Mariana CHiozza"
+date: "9/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Models with Memory
+
+Cafes example: The distribution of waiting times in the population is the prior for each cafe. Here we are not using the posterior distribution of one given cafe as a prior for the next cafe because this implies that the two cafes have the same average waiting time.
+
+
+## Practice Problems
+
+### 13E1.
+
+The prior with the bigger sigma will produce more shrinkage in the estimates since it has a wider distribution.
+
+
+### 13E2.
+
+m13E2 <- ulam(
+    alist(
+        y ~ dbinom( 1 , p ) ,
+        logit(p) <- a[group] + b*x ,
+        b ~ dnorm( 0 , 0.5 ),
+    ## adaptive priors
+        a[group] ~ dnorm( a_bar , sigma_a ),
+    ## hyper-priors
+        a_bar ~ dnorm( 0 , 1.5 ),
+        sigma_a ~ dexp(1)
+    
+
+
+### 13E3.
+
+
+m13E3 <- ulam(
+    alist(
+        y ~ dnorm( mu , sigma) ,
+        mu<-a[group] + b*x ,
+        b ~ dnorm( 0 , 1 ),
+        a[group] ~ dnorm( a_bar , sigma_a ),
+        a_bar ~ dnorm( 0 , 5 ),
+        sigma_a ~ dexp(1),
+        sigma   ~ dexp(1)
+
+
+### 13E4.
+
+
+### 13E5.
+
+
+### 13M1.
+
+
+
+
+
+```{r}
+library(rethinking)
+data(reedfrogs)
+d <- reedfrogs
+str(d)
+
+## R code 13.2
+# make the tank cluster variable
+d$tank <- 1:nrow(d)
+
+dat <- list(
+    S = d$surv,
+    N = d$density,
+    P = d$pred,
+    Z = d$size,
+    tank = d$tank )
+
+# approximate posterior
+
+m13M1.1 <- ulam(
+    alist(
+        S ~ dbinom( N , p ) ,
+        logit(p) <- a[tank] ,
+        a[tank] ~ dnorm( a_bar , sigma ) ,
+        a_bar ~ dnorm( 0 , 1.5 ) ,
+        sigma ~ dexp( 1 )
+    ), data=dat , chains=4 , log_lik=TRUE )
+
+
+
+# Should we add pred variable with a binomial distribution????
+# m13M1.2 <- ulam(
+#    alist(
+  #      S ~ dbinom( N , p ) ,
+  #     logit(p) <- a[tank] + b[pred],
+  #      b[pred] ~ dbinom(??),
+        
+        
+  #      a[tank] ~ dnorm( a_bar , sigma ) ,
+  #      a_bar ~ dnorm( 0 , 1.5 ) ,
+  #      sigma ~ dexp( 1 )
+  #      ), data=dat , chains=4 , log_lik=TRUE )
+
+
+```
+
