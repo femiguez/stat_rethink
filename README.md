@@ -75,7 +75,9 @@ Notes
 
 [Chapter 12: Gina notes and Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/ch_12_practice-Gina.html)
 
-[Chapter 13: Model with Memory](https://femiguez.github.io/stat_rethink/notes/chapter_13/ch_13_Models_with_Memory.html)
+[Chapter 12: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_12/Chapt12_StatRethink_Anabelle.html)
+
+[Chapter 13: Models with Memory](https://femiguez.github.io/stat_rethink/notes/chapter_13/ch_13_Models_with_Memory.html)
 
 [Chapter 13: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_13/StatRethink_Chap13_Anabelle.html)
 
