@@ -1,0 +1,14 @@
+---
+title: "Adventures in Covariance"
+author: "Fernando Miguez"
+date: "9/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Adventures in Covariance
+
+It is worth thinking about how variables co-vary.
