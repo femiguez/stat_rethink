@@ -7,8 +7,110 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(nlraa)
+library(car)
+library(brms)
+library(nlme)
 ```
 
-# Adventures in Covariance
+# Relationship between the intercept and slope 
 
-It is worth thinking about how variables co-vary.
+Even in a simple linear regression there is a Variance-Covariance matrix for the two parameters of the model: the intercept and the slope. The model here is:
+
+$$
+y_i = \beta_0 + \beta_1 x_i + e_i
+$$
+
+It is natural for these parameters to be correlated becuase it is les likey to have extreme combinations for both of them. Here is a simple non-Bayesian example:
+
+```{r}
+## Simulate data
+xx <- 1:20
+yy <- 3 + 1.5 * xx + rnorm(length(xx))
+dat <- data.frame(x = xx, y = yy)
+## Visualize
+ggplot(data = dat, aes(x = x, y = y)) + 
+  geom_point()
+## Fit a linear model
+fit <- lm(y ~ x, data = dat)
+## Beta coefficients
+coef(fit)
+## Variance-Covariance for beta
+vcov(fit)
+## Correlation matrix
+cov2cor(vcov(fit))
+## Visualize model fits
+set.seed(1234)
+fit.s <- simulate_lm(fit, nsim = 5, value = "data.frame")
+ggplot(data = fit.s, aes(x = x, y = y)) + 
+  geom_line(aes(y = sim.y, group = ii), color = "purple", alpha = 0.3) + 
+  geom_point() 
+## We can also visualize the negative correlation among the parameters
+fit.b <- boot_lm(fit)
+hist(fit.b, 1, ci = "perc")
+hist(fit.b, 2, ci = "perc")
+## Visualizing the correlation
+plot(fit.b$t, xlab = "Intercept", ylab = "Slope")
+```
+
+The function **simulate_lm** uses internally the function **MASS::mvrnorm** which can simualte samples from a multivariate normal distribution. **boot_lm** does bootstrapping which involves simulating data similar to the observed one and re-fitting the model (by default 1000 times). This is a way of empirically deriving the distribution of the parameters.
+
+## The brms way
+
+How to fit a simple Bayesian linear regression using brms
+
+```{r}
+priors <- prior(normal(0, 5), class = "Intercept") + 
+  prior(normal(0, 4), coef = "x")
+## Fit model
+fbrms <- brm(y ~ x, data = dat, prior = priors, refresh = 0)
+## Plotting posterior distributions of parameters
+plot(fbrms, "b_")
+## Extract posterior samples
+ps <- posterior_samples(fbrms)
+## Simple plot
+plot(ps[,1:2], xlab = "Intercept", ylab = "slope")
+## Or using pairs
+pairs(fbrms, "^b_")
+## We can extract equivalent quantities
+vcov(fbrms)
+cov2cor(vcov(fbrms))
+```
+
+## How do we fit a model with varying intercepts and slopes in brms
+
+```{r, cache = TRUE}
+data(barley, package = "nlraa")
+## Fit one regression for each year, with year as random
+barley$NF2 <- barley$NF^2
+br.lme <- lme(yield ~ NF + NF2, random = ~ NF + NF2 | year, data = barley)
+## Fixed or population-level effects
+fixef(br.lme)
+## Variance-covariance for beta
+vcov(br.lme)
+cov2cor(vcov(br.lme))
+## Bayesian way
+prs <- prior(normal(100, 50), class = Intercept) + 
+  prior(normal(50, 15), class = "b", coef = "NF") + 
+  prior(normal(0, 5), class = "b", coef = "NF2") + 
+  prior(student_t(2, 0, 150), class = "sd")
+## Fit the multilevel model
+br.brms <- brm(yield ~ NF + NF2 + (NF + NF2 | year), 
+               data = barley, refresh = 0, iter = 10000,
+               cores = 4,
+               seed = 1234,
+               prior = prs, control = list(adapt_delta = 0.95,
+                                           max_treedepth = 15))
+## I get some complains, but the model fit seems fine
+plot(br.brms, "^b_")
+pairs(br.brms, "^b_")
+pp <- predict(br.brms)  
+pp2 <- cbind(barley, pp)
+## Plot
+ggplot(data = pp2, aes(NF, yield)) + 
+  geom_point() + 
+  facet_wrap(~year) + 
+  geom_line(aes(y = Estimate)) + 
+  geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5), fill = "purple", alpha = 0.3)
+```
