@@ -85,4 +85,6 @@ Notes
 
 [Chapter 14: Adventures in Covariance I](https://femiguez.github.io/stat_rethink/notes/chapter_14/ch_14_Adventures_in_Covariance.html)
 
+[Chapter 14: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_14/StatRethink_Chap14_Anabelle.html)
+
 
