@@ -60,7 +60,7 @@ The function **simulate_lm** uses internally the function **MASS::mvrnorm** whic
 
 How to fit a simple Bayesian linear regression using brms
 
-```{r}
+```{r, cache = TRUE}
 priors <- prior(normal(0, 5), class = "Intercept") + 
   prior(normal(0, 4), coef = "x")
 ## Fit model
@@ -126,7 +126,7 @@ $$
 When we have two variables $X_1$ and $X_2$ then we have
 
 $$
-Cov = \left[ \begin{array}{ll}
+Cov(X_1, X_2) = \left[ \begin{array}{ll}
              \sigma_1^2 & \sigma_{12} \\
              \sigma_{21} & \sigma_2^2
               \end{array} \right]
