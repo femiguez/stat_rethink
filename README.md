@@ -83,6 +83,6 @@ Notes
 
 [Chapter 13: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_13/Stat_rethink_Chap13_mariana.html)
 
-[Chapter 14: Adventures in Covariance](https://femiguez.github.io/stat_rethink/notes/chapter_14/ch_14_Adventures_in_Covariance.html)
+[Chapter 14: Adventures in Covariance I](https://femiguez.github.io/stat_rethink/notes/chapter_14/ch_14_Adventures_in_Covariance.html)
 
 

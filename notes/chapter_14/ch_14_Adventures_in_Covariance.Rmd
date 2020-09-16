@@ -114,3 +114,85 @@ ggplot(data = pp2, aes(NF, yield)) +
   geom_line(aes(y = Estimate)) + 
   geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5), fill = "purple", alpha = 0.3)
 ```
+
+# More on Covariances
+
+Covariances arise any time we have two or more random variables. For a sinlge variable we have a mean and a variance.
+
+$$
+\mu = E(X) \\
+\sigma^2 = E[(X  - E(X))^2]
+$$
+When we have two variables $X_1$ and $X_2$ then we have
+
+$$
+Cov = \left[ \begin{array}{ll}
+             \sigma_1^2 & \sigma_{12} \\
+             \sigma_{21} & \sigma_2^2
+              \end{array} \right]
+$$
+In the simplest of linear regression models we have
+
+$$
+Cov(Y) = Cov(e) = \sigma^2 \times I_{n \times n}
+$$
+
+However, this Covariance could be modelled in much more complex ways when the data are more complex
+
+```{r nlraa}
+library(nlme)
+library(nlraa)
+library(ggplot2)
+data(ChickWeight)
+
+dim(ChickWeight)
+
+fm1 <- lm(weight ~ Time, data = ChickWeight)
+
+ggplot(data = ChickWeight, aes(Time, weight)) + 
+  geom_point() + 
+  ggtitle("Chick weight with time")
+
+ggplot(data = ChickWeight, aes(Time, weight, color = Chick)) + 
+  geom_point() + 
+  geom_line(aes(y = fitted(fm1)), color = "black") + 
+  theme(legend.position = "none")
+
+## Fit a linear model where we fit 
+## increasing variance and CAR1 correlation structure
+fit4 <- gls(weight ~ Time, data = ChickWeight, 
+            weights = varPower(),
+            correlation = corCAR1(form = ~ Time | Chick))
+
+v4 <- var_cov(fit4)
+## Tip: you can visualize these matrices using
+image(log(v4[,ncol(v4):1]))
+## Take a closer look
+v42 <- v4[1:36, 1:36]
+image(log(v42[,ncol(v42):1]))
+
+## Look at raw numbers
+round(v4[1:12, 1:12])
+## Look at ChickWeight
+head(ChickWeight, 12)
+## Look at the correlation matrix
+round(cov2cor(v4[1:12, 1:12]), 2)
+```
+
+Some magic happened in when we fitted the model using **gls**. The **varPower** option assumes that the variance in the diagonal can be modeled in the following way:
+
+$$
+\sigma^2(v) = |v|^{2 t}
+$$
+```{r chickweight-gls}
+fit4
+```
+
+The correlation was modeled using **corCAR1** (https://en.wikipedia.org/wiki/Autoregressive_model).
+
+![SAS-cov](./SAS-covariances.png)
+
+
+
+
+
