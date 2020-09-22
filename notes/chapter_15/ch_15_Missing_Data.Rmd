@@ -1,0 +1,14 @@
+---
+title: "Missing Data and Other Opportunities"
+author: "Fernando Miguez"
+date: "9/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Missing Data
+
+Just starting the notes at this point
