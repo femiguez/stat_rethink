@@ -83,8 +83,12 @@ Notes
 
 [Chapter 13: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_13/Stat_rethink_Chap13_mariana.html)
 
-[Chapter 14: Adventures in Covariance I](https://femiguez.github.io/stat_rethink/notes/chapter_14/ch_14_Adventures_in_Covariance.html)
+[Chapter 14: Adventures in Covariance](https://femiguez.github.io/stat_rethink/notes/chapter_14/ch_14_Adventures_in_Covariance.html)
 
 [Chapter 14: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_14/StatRethink_Chap14_Anabelle.html)
 
+[Chapter 15: Missing Data](https://femiguez.github.io/stat_rethink/notes/chapter_15/ch_15_Missing_Data.html)
 
+[Chapter 15: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_15/StatRethinkChap15_Anabelle.html)
+
+[Chapter 15: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_15/Stat_rethink_Chap15_Mariana.html)

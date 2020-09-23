@@ -7,8 +7,80 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(nlraa)
+library(ggplot2)
+library(car)
 ```
 
-# Missing Data
+# Notes
 
-Just starting the notes at this point
+First example is about pancakes illustrating a simple example in which caluculating probabilities amounts to simply counting the number of ways a burnt (side) of a pancake can occur. 
+
+> Probability is not difficult mathematically. It is just counting. But it is hard to interpret and apply.
+
+## Measurement Error
+
+Incorporating the standard error as measurement error is equivalent to what is done in meta-analysis where individual studies are weighted by their precision. The weights in this case are often derived from standard errors or related statistics. A key observation (for me at least) is that the precision (**D_sd** in code chunk 15.3) does **not** have a distribution associated with it. It is incorporated in the model as a known value. In most cases, I think that incorporating measurement error tends to reduce the magnitude of effects (not always the case).
+
+> The big take home point for this section is that when you have a distribution of values, don't reduce it down to a single value to use in a regression. Instead, use the entire distribution. Anytime we use an average value, discarding the uncertainty around that average, we risk overconfidence and spurious inference. This doesn't only apply to measurement error, but also to cases in which data are averaged before analysis.
+
+> But ignoring the measurment error isn't alright. And that's what almost everyone does almost every time.
+
+```{r}
+xx <- seq(0, 350, length.out = 10)
+yy <- quadp(rep(xx, 10), 5000, 40, -0.06, 250) + rnorm(100, sd = 700)
+dat <- data.frame(x = xx, y = yy)
+## Visualize
+ggplot(data = dat, aes(x, y)) + geom_point()
+## Fit model
+fit0 <- minpack.lm::nlsLM(y ~ SSquadp(x, a, b, c, xs), data = dat)
+summary(fit0)
+## Bootstrap confidence intervals
+suppressWarnings(fit0.bt <- Boot(fit0))
+## confidence intervals
+confint(fit0.bt)
+## Aggregate
+dat.a <- aggregate(y ~ x, data = dat, FUN = mean)
+## Visualize
+ggplot(data = dat.a, aes(x, y)) + geom_point()
+## Fit model
+fit0.a <- minpack.lm::nlsLM(y ~ SSquadp(x, a, b, c, xs), data = dat.a)
+summary(fit0.a)
+fit0.a.bt <- suppressWarnings(Boot(fit0.a, method = "residual"))
+confint(fit0.a.bt)
+## Manufacture confidence
+ggplot(data = dat.a, aes(x, y)) + 
+  geom_point() + 
+  geom_line(aes(y = fitted(fit0.a)))
+## Rsquared
+r_squared <- function(x){
+  dt <- eval(x$data)
+  ss.y <- var(dt$y) * (length(dt$y) - 1)
+  ans <- (ss.y - deviance(x))/ss.y
+} 
+## R-squared
+(fit0.rsq <- r_squared(fit0))
+(fit0.a.rsq <- r_squared(fit0.a))
+## We have almost perfect R-squared in the second case
+```
+
+## Missing Data through Bayesian Imputation
+
+Regardless of the details in this section, RMcE again is asking us to think hard about the implications of missing data in our own research. 
+
+* Can we safely ignore it?
+* Is it truly missing at random?
+* Is there a process that can explain the missing data?
+
+Throwing data away is not inconsequential. Our default action is the **complete case analysis**. This is what I would call the *lazy* way. It is inefficient and it throws away valueable data. 
+Replacing the missing data by some fixed value seems to be a very bad idea except in special cases. 
+
+> DAG ate my homework (or github pull request)
+
+The main message behind this example is that there are consequences to the proces which generates the missing data.
+
+Terminology:
+
+* **Missing Completely at Random (MCAR)**
+* **Missing at Random (MAR)**
+* **Missing Not at Random**
