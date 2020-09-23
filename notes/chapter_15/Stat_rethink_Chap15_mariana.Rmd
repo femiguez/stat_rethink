@@ -1,0 +1,185 @@
+---
+title: "Stat_rethink Chapter 15"
+author: "Mariana CHiozza"
+date: "9/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Missing Data and Other Opportunities
+
+## Practice Problems
+
+### 15E1.
+
+
+Ti ~ Poisson (mu_i) 
+
+logmu_i = alpha + beta*logP_True_i
+
+logP_Obs_i ~ Normal (logP_True_i, logP_SE_i)
+
+logP_True_i ~ Normal (0, 1)
+
+alpha ~ Normal(0, 1.5)
+
+beta ~ Normal(0, 1)
+
+
+### 15E2.
+
+Ti ~ Poisson (mu_i) 
+
+logmu_i = alpha + beta*logP_i
+
+logP_i ~ Normal (nu, sigma_logP_i)
+
+nu ~ Normal (0, 0.5)
+
+sigma_logP_i ~ Exponential (1)
+
+alpha ~ Normal(0, 1.5)
+
+beta ~ Normal(0, 1)
+    
+
+
+### 15M1.
+
+The model assumes that each parameter for the imputation of each logP_i has a standarized Gaussian uncertainty. 
+
+
+
+### 15M2.
+
+Can't get the beta distribution for B......
+
+
+```{r}
+## R code 15.16
+library(rethinking)
+data(milk)
+d <- milk
+d$neocortex.prop <- d$neocortex.perc / 100
+d$logmass <- log(d$mass)
+dat_list <- list(
+    K = standardize( d$kcal.per.g ),
+    B = standardize( d$neocortex.prop ),
+    M = standardize( d$logmass ) )
+
+## R code 15.17
+m15.5 <- ulam(
+    alist(
+        K ~ dnorm( mu , sigma ),
+        mu <- a + bB*B + bM*M,
+        B ~ dnorm( nu , sigma_B ),
+        c(a,nu) ~ dnorm( 0 , 0.5 ),
+        c(bB,bM) ~ dnorm( 0, 0.5 ),
+        sigma_B ~ dexp( 1 ),
+        sigma ~ dexp( 1 )
+    ) , data=dat_list , chains=4 , cores=4 )
+
+## R code 15.18
+precis( m15.5 , depth=2 )
+
+
+```
+
+
+### 15M3.
+
+```{r}
+## R code 15.2
+library(rethinking)
+data(WaffleDivorce)
+d <- WaffleDivorce
+
+# points
+plot( d$Divorce ~ d$MedianAgeMarriage , ylim=c(4,15) ,
+    xlab="Median age marriage" , ylab="Divorce rate" )
+
+# standard errors
+for ( i in 1:nrow(d) ) {
+    ci <- d$Divorce[i] + c(-1,1)*d$Divorce.SE[i]
+    x <- d$MedianAgeMarriage[i]
+    lines( c(x,x) , ci )
+}
+
+## R code 15.5
+dlist <- list(
+    D_obs = standardize( d$Divorce ),
+    D_sd = d$Divorce.SE / sd( d$Divorce ),
+    M_obs = standardize( d$Marriage ),
+    M_sd = d$Marriage.SE / sd( d$Marriage ),
+    A = standardize( d$MedianAgeMarriage ),
+    N = nrow(d)
+)
+
+m15.2 <- ulam(
+    alist(
+        D_obs ~ dnorm( D_true , D_sd ),
+        vector[N]:D_true ~ dnorm( mu , sigma ),
+        mu <- a + bA*A + bM*M_true[i],
+        M_obs ~ dnorm( M_true , M_sd ),
+        vector[N]:M_true ~ dnorm( 0 , 1 ),
+        a ~ dnorm(0,0.2),
+        bA ~ dnorm(0,0.5),
+        bM ~ dnorm(0,0.5),
+        sigma ~ dexp( 1 )
+    ) , data=dlist , chains=4 , cores=4 )
+
+## R code 15.6
+post <- extract.samples( m15.2 )
+D_true <- apply( post$D_true , 2 , mean )
+M_true <- apply( post$M_true , 2 , mean )
+plot( dlist$M_obs , dlist$D_obs , pch=16 , col=rangi2 ,
+    xlab="marriage rate (std)" , ylab="divorce rate (std)" )
+points( M_true , D_true )
+for ( i in 1:nrow(d) )
+    lines( c( dlist$M_obs[i] , M_true[i] ) , c( dlist$D_obs[i] , D_true[i] ) )
+
+
+
+```
+
+```{r}
+## R code 15.5 modif
+dlist.2 <- list(
+    D_obs = standardize( d$Divorce ),
+    D_sd = 2*(d$Divorce.SE) / sd( d$Divorce ),
+    M_obs = standardize( d$Marriage ),
+    M_sd = 2*(d$Marriage.SE) / sd( d$Marriage ),
+    A = standardize( d$MedianAgeMarriage ),
+    N = nrow(d)
+)
+
+m15.2.2 <- ulam(
+    alist(
+        D_obs ~ dnorm( D_true , D_sd ),
+        vector[N]:D_true ~ dnorm( mu , sigma ),
+        mu <- a + bA*A + bM*M_true[i],
+        M_obs ~ dnorm( M_true , M_sd ),
+        vector[N]:M_true ~ dnorm( 0 , 1 ),
+        a ~ dnorm(0,0.2),
+        bA ~ dnorm(0,0.5),
+        bM ~ dnorm(0,0.5),
+        sigma ~ dexp( 1 )
+    ) , data=dlist.2 , chains=4 , cores=4 )
+
+## R code 15.6
+post <- extract.samples( m15.2.2 )
+D_true <- apply( post$D_true , 2 , mean )
+M_true <- apply( post$M_true , 2 , mean )
+plot( dlist.2$M_obs , dlist.2$D_obs , pch=16 , col=rangi2 ,
+    xlab="marriage rate (std)" , ylab="divorce rate (std)" )
+points( M_true , D_true )
+for ( i in 1:nrow(d) )
+    lines( c( dlist.2$M_obs[i] , M_true[i] ) , c( dlist.2$D_obs[i] , D_true[i] ) )
+
+```
+
+
+
