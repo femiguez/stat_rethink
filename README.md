@@ -91,4 +91,4 @@ Notes
 
 [Chapter 15: Anabelle Practice](https://femiguez.github.io/stat_rethink/notes/chapter_15/StatRethinkChap15_Anabelle.html)
 
-[Chapter 15: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_15/Stat_rethink_Chap15_Mariana.html)
+[Chapter 15: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_15/Stat_rethink_Chap15_mariana.html)
