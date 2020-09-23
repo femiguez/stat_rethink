@@ -1,0 +1,98 @@
+---
+title: "Stat Rethink Chap 15 Anabelle"
+author: "Anabelle Laurent"
+date: "9/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE)
+library(rethinking)
+library(tidyverse)
+library(cowplot)
+library(emo)
+```
+
+##E1
+
+```{r, eval=F}
+logP_obs_i ~ Normal(logP_true_i, logP_SE_i)
+logP_true_i ~ Normal(mu_i, sigma_i)
+log(mu_i) = alpha + Beta*logP_obs_i
+```
+
+##E2
+```{r eval=F}
+# imputation for NA
+T_i ~ Poisson(mu_i)
+log(mu_i) = alpha + beta*logP_i
+logP_i ~ Normal(nu, sigma_logP) 
+alpha ~ Normal(0, 10)
+beta  ~ Normal(0, 1)
+nu ~ Normal(0.5,1)
+sigma_logP ~ dexp(1)
+```
+
+##M1
+
+The NA are drawn from the distribution Normal(nu, sigma_logP)
+
+##M2 
+```{r eval=F}
+data(milk)
+d <- milk
+d$neocortex.prop <- d$neocortex.perc / 100
+d$logmass <- log(d$mass)
+dat_list <- list(
+    K = standardize( d$kcal.per.g ),
+    B = standardize( d$neocortex.prop ),
+    M = standardize( d$logmass ) )
+
+m15.5 <- ulam(
+    alist(
+        K ~ dnorm( mu , sigma ),
+        mu <- a + bB*B + bM*M,
+        B ~ dnorm( nu , sigma_B ),
+        c(a,nu) ~ dnorm( 0 , 0.5 ),
+        bM ~ dnorm( 0, 0.5 ),
+        bB ~ beta( 1, 3 ),
+        sigma_B ~ dexp( 1 ),
+        sigma ~ dexp( 1 )
+    ) , data=dat_list , chains=4 , cores=4 )
+```
+
+##M3 
+
+```{r eval=F}
+data(WaffleDivorce)
+d <- WaffleDivorce
+
+dlist <- list(
+    D_obs = standardize( d$Divorce ),
+    D_sd = d$Divorce.SE / sd( d$Divorce ),
+    M_obs = standardize( d$Marriage ),
+    M_sd = d$Marriage.SE / sd( d$Marriage ),
+    A_obs = standardize( d$MedianAgeMarriage ),
+    A_sd = d$MedianAgeMarriage.SE / sd( d$MedianAgeMarriage ),
+    N = nrow(d)
+)
+
+m15.2 <- ulam(
+    alist(
+        D_obs ~ dnorm( D_true , D_sd ),
+        vector[N]:D_true ~ dnorm( mu , sigma ),
+        mu <- a + bA*A_true[i] + bM*M_true[i],
+        M_obs ~ dnorm( M_true , M_sd ),
+        vector[N]:M_true ~ dnorm( 0 , 1 ),
+        A_obs ~ dnorm( A_true , A_sd ),
+        vector[N]:A_true ~ dnorm( 0 , 1 ),
+        a ~ dnorm(0,0.2),
+        bA ~ dnorm(0,0.5),
+        bM ~ dnorm(0,0.5),
+        sigma ~ dexp( 1 )
+    ) , data=dlist , chains=4 , cores=4 )
+```
+
+
+
+
