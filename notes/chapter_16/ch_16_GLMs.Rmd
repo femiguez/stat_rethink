@@ -8,8 +8,55 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(rethinking)
+library(nlraa)
+library(brms)
+library(ggplot2)
 ```
 
 # Intro
 
-Just starting notes for now
+The first example is about Geometric people. This is an excuse to revisit models in which the relationship among parameters is not necessarily linear. One of the main benefits is that these models can be constructed following theoretical concepts and thus, the parameters have meaningful interpretations. There are somethings to keep in mind:
+
+* Parameters need to be **identifiable**. If this is not obviously mathematically, it will be when you try to fit the model. The parameters will be correlated to a high degree or the model will not converge. In the HMC context, you will get divergence or other small ESS or something else.
+
+* You might have competing models which are very reasonable *a priori* and will need to fit them and compare them using WAIC or other criteria.
+
+* You can assign priors for these type of models based on previous data or experience. You do not have to always scale variables as it is done in the book
+
+## Simple example using an asymptotic regression model
+
+```{r, cahce = TRUE}
+data(barley, package = "nlraa")
+
+## Visualize
+ggplot(data = barley, aes(x = NF, y = yield)) + 
+  geom_point() + ylab("Yield (g/m2)") + xlab("Nitrogen Fertilizer (g/m2)")
+
+priors <- prior(normal(400, 100), nlpar = "Asym", coef = "Intercept") + 
+  prior(normal(-2, 2), nlpar = "lrc", coef = "Intercept") + 
+  prior(normal(100, 50), nlpar = "R0", coef = "Intercept")
+
+bf1 <- bf(yield ~ Asym + (R0 - Asym)*exp(-exp(lrc) * NF), 
+           Asym + R0 + lrc ~ 1,
+           nl = TRUE)
+
+brm1 <- brm(bf1, data = barley, seed = 123, prior = priors, refresh = 0)
+### Output
+brm1
+## Visualize results
+plot(brm1, "^b_")
+## Pairs plot
+pairs(brm1, "^b_")
+## Can we get the correlation matrix for this plot?
+round(cov2cor(vcov(brm1)), 2)
+## Plot conditinal effects
+plot(conditional_effects(brm1), points = TRUE)
+## How do I just extract the parameter estimates?
+prm.est <- fixef(brm1)
+round(prm.est, 1)
+## There is a Bayes R^2, which I guess it means something??
+bayes_R2(brm1)
+## Compute the WAIC and LOO
+waic(brm1)
+loo(brm1)
+```
