@@ -1,0 +1,15 @@
+---
+title: "General Linear Madness"
+author: "Fernando Miguez"
+date: "9/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+```
+
+# Intro
+
+Just starting notes for now
