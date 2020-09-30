@@ -23,7 +23,7 @@ The first example is about Geometric people. This is an excuse to revisit models
 
 * You can assign priors for these type of models based on previous data or experience. You do not have to always scale variables as it is done in the book
 
-## Simple example using an asymptotic regression model
+## Nonlinear models: Simple example using an asymptotic regression model
 
 ```{r, cahce = TRUE}
 data(barley, package = "nlraa")
@@ -60,3 +60,109 @@ bayes_R2(brm1)
 waic(brm1)
 loo(brm1)
 ```
+
+## Hidden Minds and Observed Behavior
+
+> The so-called inverse problem is one of the most basic problems in scientific inference: How to figure out causes from observations. It is a problem, because many different causes can produce the same evidence. 
+
+### Boxes example
+
+```{r}
+data(Boxes_model)
+cat(Boxes_model)
+```
+
+## Ordinary Differential Equations
+
+For some background: https://en.wikipedia.org/wiki/Ordinary_differential_equation
+
+### Nut cracking
+
+The simple equation which describes nut cracking is
+
+$$
+\frac{dM}{dt} = k (M_{max} - M_t)
+$$
+
+Using rethinking
+
+```{r nut-rethink, cache = TRUE}
+data("Panda_nuts")
+
+## R code 16.11
+dat_list <- list(
+    n = as.integer( Panda_nuts$nuts_opened ),
+    age = Panda_nuts$age / max(Panda_nuts$age),
+    seconds = Panda_nuts$seconds )
+
+m16.4 <- ulam(
+    alist(
+        n ~ poisson( lambda ),
+        lambda <- seconds*phi*(1-exp(-k*age))^theta,
+        phi ~ lognormal( log(1) , 0.1 ),
+        k ~ lognormal( log(2) , 0.25 ),
+        theta ~ lognormal( log(5) , 0.25 )
+    ), data=dat_list , chains=4 )
+
+## What are the parameter estimates?
+precis(m16.4)
+```
+
+Using brms
+
+```{r nut-brms, cache = TRUE}
+Panda_nuts$s_age <- Panda_nuts$age / max(Panda_nuts$age)
+## Setting up priors
+nut_prs <- prior(lognormal(log(1), 0.1), nlpar = "phi", coef = "Intercept") + 
+  prior(lognormal(log(2), 0.25), nlpar = "k", coef = "Intercept") + 
+  prior(lognormal(log(5), 0.25), nlpar = "theta", coef = "Intercept")
+
+nut_bf <- bf(nuts_opened ~ seconds * phi * (1 - exp(-k * s_age))^theta,
+             phi + k + theta ~ 1, nl = TRUE, family = poisson(link = "identity"))
+
+nuts_brm <- brm(nut_bf,
+                data = Panda_nuts,
+                seed = 123,
+                prior = nut_prs,
+                refresh = 0)
+## Looks like now we get the same answer
+plot(nuts_brm, "^b_")
+## Pairs plot
+pairs(nuts_brm, "^b_")
+## How does the plot look?
+plot(conditional_effects(nuts_brm), ask = FALSE, points = TRUE)
+## Predictions
+# ndat <- expand.grid(s_age = seq(0, 1, length.out = 20), seconds = c(2, 20, 40, 80, 130))
+# prds <- predict(nuts_brm, newdata = ndat)
+# prds2 <- merge(ndat, prds)
+# prds2$seconds_f <- as.factor(prds2$seconds)
+# prds2$age <- prds2$s_age * max(Panda_nuts$age)
+# ## Plot
+# ggplot(data = prds2, aes(x = age, y = Estimate, color = seconds_f)) + 
+#   geom_point() 
+```
+
+
+### Soil Carbon Example
+
+In the book the use the example of the Lepus and Lynx populations.
+
+The simple differential equation proposed is:
+
+$$
+\frac{dH}{dt} = H_t \times (\text{birth rate}) - H_t \times (\text{death rate})
+$$
+
+For soil carbon the analogy would be
+
+$$
+\frac{dSOC}{dt} = SOC_t \times (\text{assimilation}) - SOC_t \times (\text{decomposition}) 
+$$
+
+
+![SOC-SIMPLE](./soc-model2.png)
+
+![SOC-CENTURY](./web-century.png)
+
+![SOC-EQ](./century-eqs.png)
+
