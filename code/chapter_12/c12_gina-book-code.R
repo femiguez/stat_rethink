@@ -5,6 +5,7 @@
 library(rethinking)
 library(tibble)
 library(dplyr)
+library(tidyr)
 theme_set(theme_bw())
 
 
@@ -37,8 +38,41 @@ tibble(x = seq(from = 0, to = 1, by = 0.1)) %>%
 #   dbeta( x , shape1=a , shape2=b , log=log )
 # }
 
-#-ummm what's the difference between the rethinking dbeta2 and stats dbeta?
+## see if I can get ulam working...
 
+data(rugged)
+d <- rugged %>% 
+  mutate(log_gdp = log(rgdppc_2000)) %>% 
+  drop_na %>% 
+  mutate(log_gdp_std = log_gdp/mean(log_gdp),
+         rugged_std = rugged/max(rugged),
+         cid = ifelse(cont_africa == 1, 1, 2))
+
+m8.3 <- quap(
+  alist(
+    log_gdp_std ~ dnorm(mu, sigma),
+    mu <- a[cid] + b[cid]*(rugged_std - 0.215),
+    a[cid] ~ dnorm(1, 0.1),
+    b[cid] ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ), data = d)
+
+precis(m8.3)
+
+dat_slim <- list(
+  log_gdp_std = d$log_gdp_std,
+  rugged_std = d$rugged_std,
+  cid = as.integer(d$cid)
+)
+
+m9.1 <- ulam(
+  alist(
+    log_gdp_std ~ dnorm(mu, sigma),
+    mu <- a[cid] + b[cid]*(rugged_std - 0.215),
+    a[cid] ~ dnorm(1, 0.1),
+    b[cid] ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ), data = dat_slim, chains = 1)
 
 # simulate zero-inflated poisson ------------------------------------------
 
