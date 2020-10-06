@@ -1,9 +1,43 @@
 # working thru c-12 book code
 # aug 24 2020
+# updated oct 5 for anabelle's talk
 
 library(rethinking)
-library(tidyverse)
+library(tibble)
+library(dplyr)
 theme_set(theme_bw())
+
+
+# explore what a beta dist looks like -------------------------------------
+
+pbar <- 0.5
+theta <- 2
+
+
+
+curve(dbeta2(x, pbar, theta), from = 0, to = 1, xlab = "prob", ylab = "density")
+
+#--this isn't right. why?
+tibble(x = seq(from = 0, to = 1, by = 0.1)) %>% 
+  mutate(y = dbeta(x, pbar, theta)) %>% 
+  ggplot(aes(x, y)) + 
+  geom_line()
+
+#--if I use his dbeta2 function it's fine. What's up?
+tibble(x = seq(from = 0, to = 1, by = 0.1)) %>% 
+  mutate(y = dbeta2(x, pbar, theta)) %>% 
+  ggplot(aes(x, y)) + 
+  geom_line()
+
+#-ohhhh. You don't feed the beta dist prob and theta directly. 
+# # THis is his function
+# dbeta2 <- function( x , prob , theta , log=FALSE ) {
+#   a <- prob * theta
+#   b <- (1-prob) * theta
+#   dbeta( x , shape1=a , shape2=b , log=log )
+# }
+
+#-ummm what's the difference between the rethinking dbeta2 and stats dbeta?
 
 
 # simulate zero-inflated poisson ------------------------------------------
