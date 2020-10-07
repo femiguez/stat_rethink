@@ -1,0 +1,59 @@
+---
+title: "Bayesian Grave Digging"
+author: "Gina Nichols"
+date: "10/7/2020"
+output:
+  html_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+library(tidyverse)
+library(maRsden)
+library(nlraa)
+```
+
+# Don't look at the data
+
+To develop priors, I extracted some data from Ordonez et al. 2018. 
+
+```{r, echo = F}
+ro <- read_csv("../gina-proj/ordonez-figdata.csv")
+
+ro %>% 
+  ggplot(aes(dap, rootdepth_cm)) + 
+  geom_point(size = 3, alpha = 0.5) +
+  labs(title= "Data From Ordonez et al. 2018",
+       x = "Days After Planting",
+       y = "Root Depth (cm)")
+
+```
+
+The authors also report statistics on select features of this relationship:
+
+$$
+\begin{array}{l}
+max\_depth,\space cm \sim Normal(139, 20)\\
+x\_pivot,\space days \sim Normal(35, 10) \\
+slope,\space cm/day \sim Normal(3, 0.5) \\
+\end{array}
+$$
+These can be used to help make informative priors. But first we should identify parameters we need priors for. 
+
+# Pick a non-linear relationship
+
+You'll notice the values in the figure dip after reaching a maximum. This feature would suggest a **beta-growth function** might be appropriate. However, based on our research questions, it might also be best to eliminate those values as they were simply taken to ensure the true maximum was captured. In that case, a **logistic** curve would be appropriate. 
+
+A logistic curve takes the form:
+$f(x) = \frac{Asym}{1 + e^{-k(x-x_{mid})}}$
+
+where:  
+
+x = days after planting
+
+Asym = maximum rooting depth
+
+x_mid = days after planting when half the maximum depth is achieved
+
+k = a scaling parameter, related to the slope of the curve at xmid

@@ -2,12 +2,34 @@
 # aug 24 2020
 # updated oct 5 for anabelle's talk
 
+# I updated R in an attempt to get ulam to work on my laptop
+# This writeLines thing doesn't work
+# https://cran.r-project.org/bin/windows/Rtools/
+
+#install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
+#devtools::install_github("rmcelreath/rethinking")
+# NOTE: when reinstalling stan, don't do the makevars.win thing. 
+# remove.packages("rstan")
+# if (file.exists(".RData")) file.remove(".RData")
+# install.packages("rstan", repos = "https://cloud.r-project.org/", dependencies = TRUE)
+#pkgbuild::has_build_tools(debug = TRUE)
+#library("rstan") # observe startup messages
+# options(mc.cores = parallel::detectCores())
+# rstan_options(auto_write = TRUE)
+# 
+# schools_dat <- list(J = 8, 
+#                     y = c(28,  8, -3,  7, -1,  1, 18, 12),
+#                     sigma = c(15, 10, 16, 11,  9, 11, 10, 18))
+# 
+# fit <- stan(file = 'schools.stan', data = schools_dat)
+# print(fit)
+# plot(fit)
+# pairs(fit, pars = c("mu", "tau", "lp__"))
+
+
 library(rethinking)
-library(tibble)
 library(dplyr)
 library(tidyr)
-theme_set(theme_bw())
-
 
 # explore what a beta dist looks like -------------------------------------
 
@@ -19,13 +41,13 @@ theta <- 2
 curve(dbeta2(x, pbar, theta), from = 0, to = 1, xlab = "prob", ylab = "density")
 
 #--this isn't right. why?
-tibble(x = seq(from = 0, to = 1, by = 0.1)) %>% 
-  mutate(y = dbeta(x, pbar, theta)) %>% 
+tibble::tibble(x = seq(from = 0, to = 1, by = 0.1)) %>% 
+  dplyr::mutate(y = dbeta(x, pbar, theta)) %>% 
   ggplot(aes(x, y)) + 
   geom_line()
 
 #--if I use his dbeta2 function it's fine. What's up?
-tibble(x = seq(from = 0, to = 1, by = 0.1)) %>% 
+tibble::tibble(x = seq(from = 0, to = 1, by = 0.1)) %>% 
   mutate(y = dbeta2(x, pbar, theta)) %>% 
   ggplot(aes(x, y)) + 
   geom_line()
@@ -41,6 +63,7 @@ tibble(x = seq(from = 0, to = 1, by = 0.1)) %>%
 ## see if I can get ulam working...
 
 data(rugged)
+
 d <- rugged %>% 
   mutate(log_gdp = log(rgdppc_2000)) %>% 
   drop_na %>% 
