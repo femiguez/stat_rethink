@@ -1,0 +1,230 @@
+---
+title: "Bayesian Grave Digging"
+author: "Gina Nichols"
+date: "10/7/2020"
+output:
+  html_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+library(tidyverse)
+library(maRsden)
+library(nlraa)
+library(brms)
+library(tidybayes)
+```
+
+# Don't look at the data
+
+To develop priors, I extracted some data from Ordonez et al. 2018. 
+
+```{r, echo = F}
+ro <- read_csv("gina-proj/ordonez-figdata.csv")
+
+ro %>% 
+  ggplot(aes(dap, rootdepth_cm)) + 
+  geom_point(size = 3, alpha = 0.5) +
+  labs(title= "Data From Ordonez et al. 2018",
+       x = "Days After Planting",
+       y = "Root Depth (cm)")
+
+```
+
+The authors also report statistics on select features of this relationship:
+
+$$
+\begin{array}{l}
+max\_depth,\space cm \sim Normal(139, 20)\\
+x\_pivot,\space days \sim Normal(35, 10) \\
+slope,\space cm/day \sim Normal(3, 0.5) \\
+\end{array}
+$$
+These can be used to help make informative priors. But first we should identify parameters we need priors for. 
+
+# Pick a non-linear relationship
+
+You'll notice the values in the figure dip after reaching a maximum. This feature would suggest a **beta-growth function** might be appropriate. However, based on our research questions, it might also be best to eliminate those values as they were simply taken to ensure the true maximum was captured. In that case, a **logistic** curve would be appropriate. 
+
+A logistic curve takes the form:
+$f(x) = \frac{Asym}{1 + e^{-scal(x-x_{mid})}}$
+
+where:  
+
+x = days after planting
+
+Asym = maximum rooting depth
+
+x_mid = days after planting when half the maximum depth is achieved
+
+scal = a scaling parameter, related to the slope of the curve at xmid
+
+If we choose the **logistic** route, we can fit that curve to the Ordonez data. 
+
+```{r}
+ro_max <- ro %>% 
+  filter(rootdepth_cm <= max(rootdepth_cm))
+
+fm2a <- nls(rootdepth_cm ~ SSlogis(dap, Asym, xmid, scal), data = ro_max)
+confint(fm2a)
+```
+
+This doesn't take into account the variability that is reported in the paper. But it's a start. 
+
+## Asym parameter
+For the *Asym* parameter, we could use assume a lognormal distribution to force the maximum depth to be larger than 0. However, I'm not sure that is necessary. 
+
+Assuming the distribution reported in the paper, there is very little danger of the maximum rooting depth being 0.
+
+```{r}
+plot(density(rnorm(50, 139, 20)))
+```
+
+90 cm is about 3 feet. The soils at my location are not well-drained, so I think reducing the mean value to 120, which would allow the tail to include 90 as a fairly probable value is more fitting to our situation. 
+
+
+```{r}
+plot(density(rnorm(50, 120, 20)))
+```
+
+## xmid parameter
+
+Corn is usually planted around April 15, and it starts to flower around July 1, roughly 100 days after planting. At flowering, root growth stops or slows down, so it could be expected the corn roots would reach half their maximum depth roughly 50 days after planting. This one I think we should force to be positive, but I'm not sure how to do that in brms. A reasonable normal distribution might look like this: 
+
+```{r}
+plot(density(rnorm(50, 50, 20)))
+```
+
+## scal parameter
+
+[This](https://www.tjmahr.com/anatomy-of-a-logistic-growth-curve/) says:
+
+$max\_slope = \frac{scal*Asym}{4}$ 
+
+Ordonez found the max slope was around 3 cm/day. 
+
+If we re-arrange the above equation, we can estimate our scal value. 
+
+
+$\frac{max\_slope * 4}{Asym}  = scal$ 
+
+
+So that would equate to a scal value of roughly:
+```{r}
+3*4/130
+```
+This doesn't match the scal value from the data we fit, which was around 10. I'm not sure what the problem is there. But we know it should be positive, but again I don't know how to code that into **brms**. 
+
+A log-normal prior might be:
+```{r}
+plot(density(rlnorm(50, 0.09, 0.2)))
+```
+A normally distributed prior might be:
+```{r}
+plot(density(rnorm(50, 0.1, 0.02)))
+```
+
+
+## The Real Data
+
+First, change the day of year (doy) to days after planting (dap):
+```{r}
+rd <- 
+  mrs_rootdepth %>% 
+  left_join(mrs_plotkey) %>%
+  arrange(year, doy, plot_id) %>% 
+  mutate(dop = ifelse(rootdepth_cm == 0, doy, NA)) %>% 
+  fill(dop) %>% 
+  mutate(dap = doy - dop) 
+
+fig_full <- 
+  rd %>% 
+  ggplot(aes(dap, rootdepth_cm)) + 
+  geom_point(size = 3, alpha = 0.5, color = "blue") + 
+  facet_grid(.~year) + 
+  labs(title = "Full dataset, beta-growth candidate")
+```
+
+Make alternative dataset that only includes max msmts
+
+```{r}
+
+rd_max <- 
+  rd %>% 
+  filter(!(dap > 125 & year == 2020)) %>% 
+  filter(!(dap > 100 & year == 2019)) 
+
+fig_max <- 
+  rd_max %>% 
+  ggplot(aes(dap, rootdepth_cm, color = rot_trt)) + 
+  geom_point(size = 3, alpha = 0.5, color = "red") + 
+  facet_grid(.~year)  + 
+  labs(title = "Trimmed dataset, logistic candidate")
+
+```
+
+```{r}
+library(patchwork)
+fig_full / fig_max
+
+```
+
+Ultimately, I want to have each of the parameters have a fixed effect of rotation treatment (simple, diverse) added in, but also have a random effect for the year (2018, 2019, 2020), and a random effect for the block nested within year (four blocks nested in three years for 12 of those). I want this to be applied to each of the three parameters (Asym, xmid, scal) in the non-linear function. This sounds hard, but Fernando will help me. 
+
+
+### Simplest model
+For now assume we go with the logistic curve. First we will fit a very basic universal curve, not accounting for the rotation, year, or block. This is basically copy-pasted from Fernando's code.
+
+```{r, cache=TRUE}
+priors <- prior(normal(120, 20), nlpar = "Asym", coef = "Intercept") + 
+  prior(normal(50, 20), nlpar = "xmid", coef = "Intercept") +
+  prior(normal(1, 0.5), nlpar = "scal", coef = "Intercept") #--no idea how to do a log-normal
+
+bf1 <- bf(rootdepth_cm ~ Asym / (1 + exp(-scal * (dap - xmid))),
+          Asym + scal + xmid ~ 1,
+          nl = TRUE)
+
+
+brm1 <- brm(bf1, data = rd_max, seed = 123, prior = priors, refresh = 0)
+```
+
+*Simple* model output:
+```{r}
+brm1
+```
+
+*Simple* model viz:
+```{r}
+plot(brm1, "^b_")
+```
+
+```{r}
+pairs(brm1, "^b_")
+
+```
+
+### Adding a random effect of year
+
+Let's try just stating that the parameters vary by year, but are pulled from a common population.
+
+$$
+\begin{array}{l}
+rootdepth_i \sim Normal(\mu_i, \sigma_i)\\
+\mu_i =  \frac{Asym_{[y]}}{1 + e^{-scal_{[y]}(dap_i-xmid_{[y]})}} \\
+\\
+
+Asym_{[y]} \sim Normal(\bar{Asym}, \sigma_a) \\
+\bar{Asym} \sim Normal(120, 20) \\
+\sigma_a \sim Exponential(1) \\
+\\
+scal_{[y]} \sim Normal(\bar{scal}, \sigma_{scal}) \\
+\bar{scal} \sim logNormal(1, 0.2) \\
+\sigma_scal \sim Exponential(1) \\
+\\
+xmid_{[y]} \sim Normal(\bar{xmid}, \sigma_{xmid}) \\
+\bar{xmid} \sim Normal(50, 20) \\
+\sigma_{xmid} \sim Exponential(1)\\
+\end{array}
+$$
+I am nervous to write these more complicated priors for brms. 
