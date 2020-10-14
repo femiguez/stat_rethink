@@ -1,0 +1,81 @@
+"0","knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)"
+"0","library(rethinking)"
+"2","Loading required package: rstan
+"
+"2","package ‘rstan’ was built under R version 3.6.3"
+"2","Loading required package: StanHeaders
+"
+"2","package ‘StanHeaders’ was built under R version 3.6.3"
+"2","Loading required package: ggplot2
+"
+"2","package ‘ggplot2’ was built under R version 3.6.3"
+"2","Registered S3 method overwritten by 'dplyr':
+  method           from
+  print.rowwise_df     
+"
+"2","Learn more about the underlying theory at https://ggplot2-book.org/
+"
+"2","rstan (Version 2.21.2, GitRev: 2e1f913d3ca3)
+"
+"2","For execution on a local, multicore CPU with excess RAM we recommend calling
+options(mc.cores = parallel::detectCores()).
+To avoid recompilation of unchanged Stan programs, we recommend calling
+rstan_options(auto_write = TRUE)
+"
+"2","Do not specify '-march=native' in 'LOCAL_CPPFLAGS' or a Makevars file
+"
+"2","Loading required package: parallel
+"
+"2","Loading required package: dagitty
+"
+"2","package ‘dagitty’ was built under R version 3.6.3"
+"2","rethinking (Version 2.01)
+"
+"2","
+Attaching package: ‘rethinking’
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    rstudent
+
+"
+"0","library(tidyverse)"
+"2","package ‘tidyverse’ was built under R version 3.6.2"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[30m-- [1mAttaching packages[22m --------------------------------------- tidyverse 1.3.0 --[39m
+"
+"2","[30m[32mv[30m [34mtibble [30m 3.0.3     [32mv[30m [34mdplyr  [30m 0.8.5
+[32mv[30m [34mtidyr  [30m 1.0.2     [32mv[30m [34mstringr[30m 1.4.0
+[32mv[30m [34mreadr  [30m 1.3.1     [32mv[30m [34mforcats[30m 0.4.0
+[32mv[30m [34mpurrr  [30m 0.3.3     [39m
+"
+"2","package ‘tibble’ was built under R version 3.6.3"
+"2","package ‘tidyr’ was built under R version 3.6.2"
+"2","package ‘dplyr’ was built under R version 3.6.3"
+"2","[30m-- [1mConflicts[22m ------------------------------------------ tidyverse_conflicts() --
+[31mx[30m [34mtidyr[30m::[32mextract()[30m masks [34mrstan[30m::extract()
+[31mx[30m [34mdplyr[30m::[32mfilter()[30m  masks [34mstats[30m::filter()
+[31mx[30m [34mdplyr[30m::[32mlag()[30m     masks [34mstats[30m::lag()
+[31mx[30m [34mpurrr[30m::[32mmap()[30m     masks [34mrethinking[30m::map()[39m
+"
+"0","library(cowplot)"
+"2","
+********************************************************
+"
+"2","Note: As of version 1.0.0, cowplot does not change the
+"
+"2","  default ggplot2 theme anymore. To recover the previous
+"
+"2","  behavior, execute:
+  theme_set(theme_cowplot())
+"
+"2","********************************************************
+
+"
+"0","library(emo)"
+"0","theme_set(theme_bw())"

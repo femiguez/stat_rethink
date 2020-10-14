@@ -1,0 +1,8 @@
+"0","data(tulips)  "
+"0","dt <- tulips %>% "
+"0","  as_tibble() %>% "
+"0","  mutate(blooms_std = blooms / max(blooms), #-don't standardize if 0 is meaninful. Like with ruggedness, only scale it"
+"0","         water_cent = water - mean(water),"
+"0","         shade_cent = shade - mean(shade))"
+"0",""
+"0","dt"
