@@ -2,7 +2,7 @@
 ##
 ## Authors: Gina Nichols and Fernando Miguez
 ## Date: Oct 12th 2020
-##
+## Updated: Oct 17th 2020
 
 library(tidyverse)
 library(maRsden)
@@ -69,20 +69,22 @@ fig_max <-
 
 print(fig_max)
 
-fig_full / fig_max
+## fig_full / fig_max
 
 ## Set up NLME
 rd_max$year.f <- as.factor(rd_max$year)
 rd_max$rotation <- as.factor(rd_max$rot_trt)
+rd_max$rootdepth_m <- rd_max$rootdepth_cm * 1e-2
+rd_max$plot_id <- as.factor(rd_max$plot_id)
 
 ## Typically we only have one observation per experimental unit
 ## it is no big deal but NLME sort of assumes this
-rd_maxG <- groupedData(rootdepth_cm ~ dap | plot_id, data = na.omit(rd_max))
+rd_maxG <- groupedData(rootdepth_m ~ dap | plot_id, data = na.omit(rd_max))
 
 plot(rd_maxG)
 
 ## Fit model to each individual curve
-fitL <- nlsLMList(rootdepth_cm ~ SSlogis(dap, Asym, xmid, scal), data = rd_maxG)
+fitL <- nlsLMList(rootdepth_m ~ SSlogis(dap, Asym, xmid, scal), data = rd_maxG)
 
 plot(fitL)
 
@@ -124,7 +126,7 @@ plot(fm4)
 ## Rotation does not have much of an effect on scal
 anova(fm4)
 
-fm5 <- update(fm3, weights = varFixed(~dap))
+## fm5 <- update(fm3, weights = varFixed(~dap))
 
 ## Visualize at the population level
 sim0 <- simulate_nlme(fm4, level = 0, nsim = 1e3)
@@ -133,7 +135,7 @@ rd_maxG$prd0 <- apply(sim0, 1, median)
 rd_maxG$lwr0 <- apply(sim0, 1, quantile, probs = 0.05)
 rd_maxG$upr0 <- apply(sim0, 1, quantile, probs = 0.95)
 
-ggplot(rd_maxG, aes(x = dap, y = rootdepth_cm, color = rotation)) + 
+ggplot(rd_maxG, aes(x = dap, y = rootdepth_m, color = rotation)) + 
   geom_point() + 
   geom_line(aes(y = prd0)) + 
   geom_ribbon(aes(ymin = lwr0, ymax = upr0, fill = rotation), alpha = 0.3)
@@ -155,7 +157,7 @@ rd_maxG$prd1 <- apply(sim1, 1, median)
 rd_maxG$lwr1 <- apply(sim1, 1, quantile, probs = 0.05)
 rd_maxG$upr1 <- apply(sim1, 1, quantile, probs = 0.95)
 
-ggplot(rd_maxG, aes(x = dap, y = rootdepth_cm, color = rotation)) + 
+ggplot(rd_maxG, aes(x = dap, y = rootdepth_m, color = rotation)) + 
   facet_wrap(~ year.f) + 
   geom_point() + 
   geom_line(aes(y = prd1)) + 
@@ -173,27 +175,27 @@ ggplot() +
   geom_density(aes(x = rexp1, color = "Exponential"))
 
 ## Setting up priors for brms
-priors <- prior(normal(80, 30), nlpar = "Asym", coef = "Intercept") + 
-  prior(normal(0, 15), nlpar = "Asym", coef = "rotation4y") + 
+priors <- prior(lognormal(0.1, 0.3), nlpar = "Asym", coef = "Intercept") + 
+  prior(normal(0, 0.5), nlpar = "Asym", coef = "rotation4y") + 
   prior(normal(50, 20), nlpar = "xmid", coef = "Intercept") +
-  prior(normal(0, 20), nlpar = "xmid", coef = "rotation4y") + 
+  prior(normal(0, 5), nlpar = "xmid", coef = "rotation4y") + 
   prior(normal(10, 5), nlpar = "scal", coef = "Intercept") +
-  prior(normal(0, 7), nlpar = "scal", coef = "rotation4y") + 
-  prior(student_t(5, 0, 30), nlpar = "Asym", coef = "Intercept", class = "sd", group = "year.f") + 
-  prior(student_t(5, 0, 15), nlpar = "xmid", coef = "Intercept", class = "sd", group = "year.f") + 
-  prior(student_t(5, 0, 4), nlpar = "scal", coef = "Intercept", class = "sd", group = "year.f") + 
-  prior(student_t(10, 0, 5), nlpar = "Asym", coef = "Intercept", class = "sd", group = "year.f:plot_id") +
-  prior(student_t(100, 0, 10), class = "sigma")
+  prior(normal(0, 1.5), nlpar = "scal", coef = "rotation4y") + 
+  prior(student_t(10, 0, 1), nlpar = "Asym", coef = "Intercept", class = "sd", group = "year.f") + 
+  prior(student_t(10, 0, 10), nlpar = "xmid", coef = "Intercept", class = "sd", group = "year.f") + 
+  prior(student_t(10, 0, 4), nlpar = "scal", coef = "Intercept", class = "sd", group = "year.f") + 
+  prior(student_t(30, 0, 0.15), nlpar = "Asym", coef = "Intercept", class = "sd", group = "year.f:plot_id") +
+  prior(student_t(100, 0, 0.25), class = "sigma")
 
 ## Some of this is based on the insight from the NLME
-bf1 <- bf(rootdepth_cm ~ Asym / (1 + exp((xmid - dap)/scal)),
+bf1 <- bf(rootdepth_m ~ Asym / (1 + exp((xmid - dap)/scal)),
           Asym ~ rotation + (1 | year.f/plot_id),
           xmid + scal ~ rotation + (1 | year.f),
           nl = TRUE)
 
 brm1 <- brm(bf1, data = rd_maxG, seed = 98, prior = priors,
-            iter = 1000, cores = 3, chains = 3,
-            control = list(adapt_delta = 0.95))
+            iter = 4000, cores = 3, chains = 3,
+            control = list(adapt_delta = 0.99))
 
 ## Plots look good
 plot(brm1, "^b_Asym")
