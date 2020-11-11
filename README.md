@@ -94,3 +94,5 @@ Notes
 [Chapter 15: Mariana Practice](https://femiguez.github.io/stat_rethink/notes/chapter_15/Stat_rethink_Chap15_mariana.html)
 
 [Chapter 16: General Linear Madness](https://femiguez.github.io/stat_rethink/notes/chapter_16/ch_16_GLMs.html)
+
+[Bonus: The Return of the DAG](https://femiguez.github.io/stat_rethink/presentations/Fernando/The-Return-of-the-DAG.html)
