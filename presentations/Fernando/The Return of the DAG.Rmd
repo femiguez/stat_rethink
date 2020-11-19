@@ -1,0 +1,297 @@
+---
+title: "The Return of the DAG"
+author: "Fernando Miguez"
+date: "11/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dagitty)
+library(ggdag)
+library(ggplot2)
+```
+
+## From the Book of Why: Ladder of Causality
+
+```{r, echo=FALSE, out.width="150%", fig.cap="Ladder of Causality"}
+knitr::include_graphics("./Ladder-of-Causality2.jpg")
+```
+
+
+<!-- ![SimpleLadderCausality](./Simple-Ladder-Causality.png) -->
+
+## Soil Health and Yield
+
+We might start with a vague hypothesis which states that soil health results in higher crop yields.
+
+![SoilHeatlhYields](./SoilHealth-and-Yield.png)
+
+Soil health, however, is a vague concept, so it could be replaced by soil organic matter (OM). Again, soil organic matter is not typically measured directly, but, indirectly through measuring soil organic carbon (SOC) - which itself is problematic, but this is another story.
+
+```{r soil-dags-0, echo = FALSE}
+## Soil health and yield, level 0
+coords0 <- list(x = c(SH = 0, YLD = 1), 
+                y = c(SH = 0, YLD = 0))
+
+dag0 <- dagify(YLD ~ SH,
+               coords = coords0)
+
+ggdag(dag0, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Soil Health (SH) and Yield (YLD)") + 
+  theme_dag_blank() 
+```
+
+```{r soil-dags-1, echo = FALSE}
+## Organic matter and yield
+coords1 <- list(x = c(SH = 0, YLD = 1, OM = 0), 
+               y = c(SH = 0, YLD = 0, OM = -1))
+
+dag1 <- dagify(YLD ~ SH,
+               SH ~ OM,
+               coords = coords1)
+
+ggdag(dag1, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Soil Health (SH), Organic Matter (OM) and Yield (YLD)") + 
+  theme_dag_blank()
+```
+
+```{r soil-dags-1-1, echo = FALSE}
+coords1_2 <- list(x = c(SH = 0, YLD = 1, OM = 0, SOC = 0), 
+                  y = c(SH = 0, YLD = -2, OM = -1, SOC = -2))
+
+dag1_2 <- dagify(YLD ~ SOC,
+                 SH ~ OM,
+                 OM ~ SOC,
+                 coords = coords1_2)
+
+ggdag(dag1_2, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Soil Health (SH), Organic Matter (OM), Soil Organic Carbon (SOC) and Yield (YLD)") + 
+  theme_dag_blank()
+```
+
+
+
+```{r soil-dags-2, echo = FALSE}
+## New version
+coords2 <- list(x = c(SH = 0, YLD = 1, OM = 0, SOC = 0, 
+                        WS = 0.666, WHC = 0.333), 
+                  y = c(SH = 0, YLD = -2, OM = -1, SOC = -2, 
+                        WS = -2, WHC = -2))
+
+dag2 <- dagify(YLD ~ WS,
+                 WS ~ WHC,
+                 WHC ~ SOC,
+                 SH ~ OM,
+                 OM ~ SOC,
+                 coords = coords2)
+
+ggdag(dag2, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("From Soil Health (SH) to Yield (YLD) and In-Between") + 
+  theme_dag_blank()
+```
+
+## Testing properties of the DAG
+
+```{r soil-DAG-independence}
+impliedConditionalIndependencies(dag2)[[18]]
+impliedConditionalIndependencies(dag2)[[19]]
+```
+
+## Making changes: Irrigation
+
+```{r irrigation, echo = FALSE}
+## What if we apply irrigation?
+coords3 <- list(x = c(SH = 0, YLD = 1, OM = 0, SOC = 0, 
+                      WS = 0.666, WHC = 0.333, IR = 0.666), 
+                y = c(SH = 0, YLD = -2, OM = -1, SOC = -2, 
+                      WS = -2, WHC = -2, IR = -1))
+
+dag3 <- dagify(YLD ~ WS,
+               WS ~ WHC,
+               WHC ~ SOC,
+               SH ~ OM,
+               OM ~ SOC,
+               WS ~ IR,
+               coords = coords3)
+
+ggdag(dag3, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Intervention: Irrigation (IR)") + 
+  theme_dag_blank()
+```
+
+## Egli and Hatfield AJ 2014
+
+Egli and Hatfield, 2014 (doi:10.2134/agronj2013.0364)
+
+Below on the x-axis we have NCCPI (National Commodities Crop Productivity Index.)
+
+![IrrigationEvidence](./Soybean-Egli-Hatfield-NCCPI.png)
+
+> The National Commodity Crop Productivity Index-Agriculture (NCCPI-AG) was developed to provide an indication
+of the ability of soils and climate to foster crop production
+(NRCS, 2008).
+
+> The NCCPI, designed for non-irrigated production, was
+not related to yield in Nebraska because only irrigated production was included in the analysis.
+
+> Relating the YGs to the ability of the soil to supply water to
+the crop suggests that the YGs in Iowa and Kentucky could be
+reduced significantly by increasing the soil water holding capacity (which may be difficult at best) or by irrigation (as apparently
+happened in Nebraska). 
+
+> It is difficult to evaluate the individual contributions of these three factors, but the association with NCCPI-AG
+suggests that other soil characteristics, in addition to the ability of
+the soils to supply water to the crop, may play a role in the variation
+of county yields in favorable environments 
+
+![OM-WHC](./Minasny-McBrat.png)
+
+## More to the DAG. Adding Crop Residue
+
+From Wikipedia: 
+
+> In statistics, a confounder (also confounding variable, confounding factor, or lurking variable) is a variable that influences both the dependent variable and independent variable, causing a spurious association. Confounding is a causal concept, and as such, cannot be described in terms of correlations or associations
+
+https://en.wikipedia.org/wiki/Confounding
+
+```{r irrigation-4, echo = FALSE}
+## Conservation Practices
+coords4 <- list(x = c(SH = 0, YLD = 1, OM = 0, SOC = 0, 
+                      WS = 0.666, WHC = 0.333, IR = 0.666,
+                      CPR = 0.5), 
+                y = c(SH = 0, YLD = -2, OM = -1, SOC = -2, 
+                      WS = -2, WHC = -2, IR = -1, CPR = -3))
+
+dag4 <- dagify(YLD ~ WS,
+               WS ~ WHC,
+               WHC ~ SOC,
+               SH ~ OM,
+               OM ~ SOC,
+               WS ~ IR,
+               SOC ~ CPR,
+               YLD ~ CPR,
+               coords = coords4)
+
+ggdag(dag4, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Crop Residue (CPR) - a potential confounder") + 
+  theme_dag_blank()
+```
+
+## Crop Residues do not directly affect yield
+
+```{r crop-residue-yield, echo = FALSE}
+coords5 <- list(x = c(SH = 0, YLD = 1, OM = 0, SOC = 0, 
+                      WS = 0.666, WHC = 0.333, IR = 0.666,
+                      CPR = 0.5, IF = 0.4, RO = 0.6), 
+                y = c(SH = 0, YLD = -2, OM = -1, SOC = -2, 
+                      WS = -2, WHC = -2, IR = -0.5, CPR = -5,
+                      IF = -3.5, RO = -3.5))
+
+dag5 <- dagify(YLD ~ WS,
+               WS ~ WHC,
+               WHC ~ SOC,
+               SH ~ OM,
+               OM ~ SOC,
+               WS ~ IR,
+               SOC ~ CPR,
+               YLD ~ CPR,
+               WS ~ RO,
+               WS ~ IF,
+               IF ~ CPR,
+               RO ~ CPR,
+               coords = coords5)
+
+ggdag(dag5, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Crop Residue (CPR), Infiltration (IF) and Runoff (RO)") + 
+  theme_dag_blank()
+
+dag6 <- dagify(YLD ~ WS,
+               WS ~ WHC,
+               WHC ~ SOC,
+               SH ~ OM,
+               OM ~ SOC,
+               WS ~ IR,
+               SOC ~ CPR,
+               WS ~ RO,
+               WS ~ IF,
+               IF ~ CPR,
+               RO ~ CPR,
+               coords = coords5)
+
+ggdag(dag6, node_size = 20, text_size = 2.5) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  ggtitle("Crop Residue (CPR), Infiltration (IF) and Runoff (RO)") + 
+  theme_dag_blank()
+```
+
+## Adjustment Sets
+
+```{r adj-set, echo = FALSE}
+dag5 <- dagify(YLD ~ WS,
+               WS ~ WHC,
+               WHC ~ SOC,
+               SH ~ OM,
+               OM ~ SOC,
+               WS ~ IR,
+               SOC ~ CPR,
+               YLD ~ CPR,
+               WS ~ RO,
+               WS ~ IF,
+               IF ~ CPR,
+               RO ~ CPR,
+               exposure = "SOC", outcome = "YLD",
+               coords = coords5)
+
+dag6 <- dagify(YLD ~ WS,
+               WS ~ WHC,
+               WHC ~ SOC,
+               SH ~ OM,
+               OM ~ SOC,
+               WS ~ IR,
+               SOC ~ CPR,
+               WS ~ RO,
+               WS ~ IF,
+               IF ~ CPR,
+               RO ~ CPR,
+               exposure = "SOC", outcome = "YLD",
+               coords = coords5)
+
+```
+```{r adj-sets-CPR}
+adjustmentSets(dag5)
+adjustmentSets(dag6)
+```
+
+## Remarks
+
+* This paper is NOT a deliberate intervention in which we explicitly test our hypothesis
+
+* We would need to conduct experiments where we specifically manipulate the different variables
+
+* SOC is difficult to manipulate! How do you change it while holding everything else constant!
+
+* Practices such as rotations, cover crops, soil ammendments might increase SOC, but they also change other things. 
+
+* I think there is still a lot of confusion in agronomy about certain issues and this type of exercise in causal inference can be highly beneficial
+
+## More on DAGs
+
+![Mediator-Confounder](./Mediator-Confounder.png)
+
+![Key-Principles-Confounder](./Key-principles-confounding.png)
