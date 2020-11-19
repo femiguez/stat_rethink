@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Bayesian meta-analysis with brms</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="A. Laurent, F. Miguez" />
+    <meta name="date" content="2020-11-18" />
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Bayesian meta-analysis with brms
+### <span style='color:yellow'>A. Laurent, F. Miguez
+### 2020-11-18
+
+---
+
+
+
+
+
+
+
+### What is a meta-analysis (MA)?
+
+MA = a statistical technique for combining and analyzing the results from several independent studies
+
+--
+
+Assumption that studies are comparable in broad sense.  
+
+MA are based on systematic review and it will impact its validity.   
+Performing balanced and impartial summary of the existing studies is an important step.
+
+&lt;center&gt;&lt;img src="images/systematicreview.jpeg" style="width: 30%" /&gt;&lt;/center&gt;
+
+---
+### What is a meta-analysis (MA)?
+
+&lt;left&gt;&lt;img src="images/drawingMA.jpeg" style="width: 40%" /&gt;&lt;/left&gt;
+
+&lt;right&gt;&lt;img src="images/drawingMA2.jpeg" style="width: 40%" /&gt;&lt;/right&gt;
+
+---
+### Why to perform a MA?
+
+- Decision making can be difficult if results from similar studies are diverse and conflicting (especially for clinical research)
+
+- Rational and helpful way of dealing with independent studies
+
+- Narrative review can be subjective and limited if too many studies
+
+---
+### Examples in many fields of research 
+
+- 😷 Medecine: used routinely to synthetize data on treatments in all cancer, allergies, depression and....COVID-19. 
+
+- 💊 Pharmaceutical companies to assess the efficacy of a drug
+
+- 💆Psychology 
+
+- 💵 Business
+
+- 🐛Ecology
+
+---
+### Examples in agronomy 
+
+- A global meta-analysis of yield stability in organic and conservation agriculture by S. Knapp et al., 2018 in Nature Communication. doi: 10.1038/s41467-018-05956-1
+
+- A meta-analysis of crop yield under climate change and adaptation by Challinor et al., 2014 in nature Climate Change. doi: 10.1038/NCLIMATE2153
+
+- Corn yield response to winter cover crops: An updated meta-analysis by G.S Marcillo and F.E Miguez, 2017 in Journal of Soil and Water Conservation. doi:10.2489/jswc.72.3.226
+
+---
+### Case-study
+
+- Discrepancies between small-plot and on-farm trials mentioned in the literature
+- Objectives: 
+ + Understand the impact of experimental scale on crop yield
+ + Understand the cause of yield gaps 
+
+&lt;center&gt;&lt;img src="images/exp_scales.jpeg" style="width: 40%" /&gt;
+.caption[
+Small-plot (top right) and field-scale trials. Source: Kyveryga et al., 2018 
+]
+&lt;/center&gt;
+
+---
+### Data collection
+
+- Literature search and inclusion/exclusion criteria such as:
+ + crop = corn and soybean 
+ + treatment = foliar fungicide(s) and untreated control
+ + studies must report yield (aggregated or raw data)
+ + seed foliar fungicide are excluded 
+ + commercial plot are excluded
+ 
+---
+### Data collection 
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:right;"&gt; Trial_ID &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Plot.Scale &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Fungicide &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Data.type &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Rep &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Total.rep &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Yield.ratio &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; OFT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Headline &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; raw &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.11 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; OFT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Headline &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; raw &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.98 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; OFT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Headline &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; raw &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.07 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SPT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Quadris &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; aggregated &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; NA &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.14 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SPT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stratego &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; aggregated &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; NA &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.15 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+YR = yield ratio (treated/control)
+
+---
+### Calculate the effect size 
+
+Need to homogenize the data by aggregating the individual studies (i.e., trials):
+ + compute the mean yield ratio
+ + use a log transformation
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:right;"&gt; Trial_ID &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Plot.Scale &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Fungicide &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Data.type &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Rep &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Total.rep &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; YR &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Mean.log.YR &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; OFT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Headline &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; raw &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.11 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.05 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; OFT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Headline &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; raw &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.98 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.05 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; OFT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Headline &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; raw &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.07 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.05 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SPT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Quadris &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; aggregated &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; NA &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.13 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SPT &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stratego &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; aggregated &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; NA &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.06 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.06 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+YR = yield ratio (treated/control)
+
+---
+### Visualizing the data
+
+&lt;center&gt;&lt;img src="images/plotstatrethink.png" style="width: 70%" /&gt;&lt;/center&gt;
+
+---
+### Candidate models (1/3)
+
+Multilevel model with:
+ + trial as random
+ + plot scale as a covariable
+
+```r
+mod1 &lt;- brm(meanYlratio ~ 0 + plot_scale + (1 |exp_ID),
+            chains = 3, iter = 3000,
+            control = list(adapt_delta = 0.85),
+            data = corn, family=gaussian())
+```
+
+---
+### Candidate models (2/3)
+
+Multilevel model with:
+ + plot scale as a covariable
+ + trial as random with unequal between-trial variances for small-plot and on-farm trials
+
+
+```r
+mod2 &lt;- brm(bf(meanYlratio ~ 0 + plot_scale +
+              (1 | gr(exp_ID, by = plot_scale))),
+            chains = 3, iter = 3000, 
+            control = list(adapt_delta = 0.85),
+            data = corn, family=gaussian())
+```
+
+---
+### Candidate models (3/3)
+
+Multilevel model with:
+ + plot scale as a covariable
+ + trial as random with unequal between-trial variances for small-plot and on-farm trials
+ + unequal within-trial variance for small-plot and on-farm trials
+
+
+```r
+mod3 &lt;- brm(bf(meanYlratio ~ 0 + plot_scale +
+              (1 | gr(exp_ID, by = plot_scale)),
+              sigma ~ 0 + plot_scale),
+            chains = 3, iter = 3000, 
+            control = list(adapt_delta = 0.85),
+            data = corn, family=gaussian())
+```
+
+---
+### Between-trial and within-trial variability
+&lt;center&gt;&lt;img src="images/betweenwithin.png" style="width: 60%" /&gt;
+.caption[
+This is a toy dataset!
+]&lt;/center&gt;
+
+Between-trial variability: trials behave differently (see black triangle)  
+Within-trial variability: spread of the replicate within trial (see gray dots)  
+Mod3 assumes that OFTs and SPTs behave differently and their replicates too. 
+---
+### How to notice and fix convergence problems?
+
+
+```r
+Warning messages:
+1: There were 11 transitions after warmup that exceeded the maximum treedepth. 
+Increase max_treedepth above 10. See
+http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
+
+2: There were 3 chains where the estimated Bayesian Fraction of 
+Missing Information was low. See
+http://mc-stan.org/misc/warnings.html#bfmi-low 
+
+3: Examine the pairs() plot to diagnose sampling problems
+ 
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior 
+means and medians may be unreliable.
+Running the chains for more iterations may help. See
+http://mc-stan.org/misc/warnings.html#bulk-ess 
+
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior 
+variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+http://mc-stan.org/misc/warnings.html#tail-ess 
+```
+
+
+---
+### How to notice and fix convergence problems?
+
+&lt;center&gt;&lt;img src="images/pairs.jpeg" style="width: 100%" /&gt;
+.caption[
+Pairs plot after running mod3 with default priors 
+]
+&lt;/center&gt;
+
+---
+### How to notice and fix convergence problems?
+
+&lt;center&gt;&lt;img src="images/chains.jpeg" style="width: 90%" /&gt;
+.caption[
+Convergence chains after running mod3 with default priors 
+]
+&lt;/center&gt;
+
+---
+### First (wrong) attempt 😨
+
+I tried:
+- increasing iter
+- adapt_delta
+- max_treedepth
+- no seed 
+- 4 chains
+
+
+```r
+mod&lt;- brm(bf(meanYlratio ~ 0 + plot_scale +
+              (1 | gr(exp_ID, by = plot_scale)),
+              sigma ~ 0 + plot_scale),
+            chains = 4, iter = 9000,
+            control = list(adapt_delta = 0.99,max_treedepth = 15),
+            data = corn, family=gaussian())
+```
+
+As a results model took a looooong time to run
+---
+
+&lt;center&gt;&lt;img src="images/wrong.jpg" style="width: 70%" /&gt;
+&lt;/center&gt;
+
+---
+
+&lt;iframe width="926" height="521" src="https://www.youtube.com/embed/LvA-Juxizd8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen&gt;&lt;/iframe&gt;
+
+---
+### Let's look at the default priors
+
+&lt;center&gt;&lt;img src="images/defaultpriors.jpeg" style="width: 80%" /&gt;
+&lt;/center&gt;
+
+They need to be tighter (to be more informative)
+
+Tip: fix the seed when your model is running smoothly
+
+---
+### Instead....define your priors!!
+
+
+```r
+mypriors &lt;- prior(student_t(10, 0, 0.1), class = "sd", group = "exp_ID") + 
+            prior(student_t(10, -4.4, 0.1), class = "b", coef = "plot_scaleOFT", dpar = "sigma") +
+            prior(student_t(5, -3.2, 0.5), class = "b", coef = "plot_scaleSPT", dpar = "sigma") +
+            prior(normal(0,0.2), class = b, coef = plot_scaleOFT) + 
+            prior(normal(0,0.2), class = b, coef = plot_scaleSPT)
+
+mod3 &lt;- brm(bf(meanYlratio ~ 0 + plot_scale +
+              (1 | gr(exp_ID, by = plot_scale)),
+              sigma ~ 0 + plot_scale),
+            chains = 3, iter = 3000, 
+            prior = mypriors, seed = 8,
+            control = list(adapt_delta = 0.85),
+            data = corn, family=gaussian())
+```
+
+---
+### Visualizing the defined priors
+![](meta-analysis-brms_files/figure-html/unnamed-chunk-9-1.png)&lt;!-- --&gt;
+
+---
+### Visualizing one defined prior and one default prior
+
+![](meta-analysis-brms_files/figure-html/unnamed-chunk-10-1.png)&lt;!-- --&gt;
+
+---
+### Check convergence 
+
+
+&lt;center&gt;&lt;img src="images/chainsgood.jpeg" style="width: 90%" /&gt;
+.caption[
+Convergence chains after running mod3 with defined priors 
+]
+&lt;/center&gt;
+
+---
+### Model summary 
+
+&lt;center&gt;&lt;img src="images/summary.jpeg" style="width: 100%" /&gt;
+&lt;/center&gt;
+
+---
+### Weighted meta-analysis 
+
+- The weight given to each study (i.e. how much influence each study has on the overall results of the MA) is determined by the inverse of the variance.
+
+- An alternative method is to use the sample size instead of 1/variance.
+
+- Larger studies will contribute more than smaller studies
+
+---
+### How to assign weights with brms (1/2)
+
+
+```r
+# option One
+mod3sei &lt;- brm(bf(meanYlratio| se(sei) ~ 0 + plot_scale + #sei= standard error
+              (1 | gr(exp_ID, by = plot_scale))),
+            chains = 3, iter = 3000, prior = mypriors, seed = 8,
+            control = list(adapt_delta = 0.85),
+            data = corn, family=gaussian())
+```
+
+By default, when using `se()` sigma is `FALSE` because the uncertainty around the estimate value for each trial/study is already encoded as the standard error.
+
+---
+### How to assign weights with brms (2/2)
+
+
+```r
+# option Two 
+mypriors &lt;- prior(student_t(10, 0, 0.1), class = "sd", group = "exp_ID") +
+            prior(normal(0,0.2), class = b, coef = plot_scaleOFT) + 
+            prior(normal(0,0.2), class = b, coef = plot_scaleSPT)
+
+mod3wei &lt;- brm(bf(meanYlratio| weights(wei) ~ 0 + plot_scale + # wei= sample size
+              (1 | gr(exp_ID, by = plot_scale))),
+            chains = 3, iter = 3000, prior = mypriors, seed = 8,
+            control = list(adapt_delta = 0.85),
+            data = corn_wei, family=gaussian())
+```
+
+`weights()` is more arbitrary. In this case study we can choose the number of replicates per treatment.
+
+The likelihood contributions of each observation are weighted. 
+brms takes the weights literally, which means that an observation with weight = 2 receives twice more weight than an observation with weight 1. It also means that using a weight of 2 is equivalent to adding the corresponding observation twice to the data frame.
+
+---
+### Sources and further reading  📖
+
+- Introduction to Meta-Analysis. Michael Borenstein, L. V. Hedges, J. P. T. Higgins and H. R. Rothstein © 2009 John Wiley &amp; Sons, Ltd. ISBN: 978-0-470-05724-7
+
+- [Matti Vuorre's post](https://vuorre.netlify.app/post/2016/09/29/meta-analysis-is-a-special-case-of-bayesian-multilevel-modeling/)
+
+- [A. Solomon Kurz's post #1](https://solomonkurz.netlify.app/post/bayesian-meta-analysis/)
+
+- [A. Solomon Kurz's post #2](https://solomonkurz.netlify.app/post/bayesian-meta-analysis-in-brms-ii/)
+
+- [Assessment of the quality of meta-analysis in agronomy](https://www.sciencedirect.com/science/article/abs/pii/S016788091100404X) by A. Philibert et al. 2012 in Agriculture, Ecosystems &amp; Environment, volume 148, 72-82
+
+- [Moving science forward through: Meta‐analysis](https://acsess.onlinelibrary.wiley.com/doi/full/10.2134/csa2015-60-5-1) 2015 in CSA News
+
+---
+### Thank you 😄
+
+&lt;center&gt;&lt;img src="images/funny.jpg" style="width: 70%" /&gt;
+&lt;/center&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
