@@ -109,10 +109,20 @@ plot(fm0)
 ## Incorporate the effect of rotation
 fxf <- fixef(fm0)
 ## Update model
-fm1 <- update(fm0, fixed = Asym + xmid + scal ~ rotation,
+fm1 <- update(fm0, 
+              fixed = Asym + xmid + scal ~ rotation,
               start = c(fxf[1], 0, fxf[2], 0, fxf[3], 0))
 
-anova(fm1) ## Not much of an effect?
+# how to specify fixed effects? Look at the order...
+fm1a <- update(fm0,
+              fixed = list(Asym ~  rotation + mean_elev_m,
+                           xmid + scal ~ rotation),
+              start = c(fxf[1], 0, 0, # asym
+                        fxf[2], 0, 
+                        fxf[3], 0))
+
+
+anova(fm1a) ## Not much of an effect?
 
 fm2 <- update(fm1, random = list(year.f = pdDiag(Asym + xmid + scal ~ 1),
                                  plot_id = pdDiag(Asym + xmid + scal ~ 1)),
