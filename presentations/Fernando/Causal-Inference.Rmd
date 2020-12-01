@@ -1,0 +1,117 @@
+---
+title: "Causal Inference"
+author: "Fernando Miguez"
+date: "12/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggdag)
+library(MASS)
+```
+
+## Why do I believe in Causal Inference 
+
+Classic experiments in agronomy are closely related to the birth of modern frequentist statistics. Ronald Fisher worked out many of the methods we use today in the context of typical agronomic experiments. 
+
+Agronomic field experiments are analogous to Randomized Controlled Trials (RCT) in medicine and epidemiology. In this setting, you select -- at random -- groups of plots or subjects and assign a treatment such as a drug, fertilzer of intervention. When an effect is detected you can be fairly confident that a causal effect is justified.
+
+```{r}
+crds <- list(x = c(FERT = 0, YLD = 1), y = c(FERT = 0, YLD = 0))
+dag <- dagify(YLD ~ FERT, coords = crds)
+
+ggdag(dag) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  theme_dag_blank() + 
+  ggtitle("Fertilizer affects yield")
+```
+
+However, while this is straightforward for a single experiment, the problem arises when we conduct more than one experiment. What if the treatment worked in one year/location, but not in another year/location? We seem to be at a loss about how to resolve this. The common idea is that we can come up with covariates which allow us to explain the differences, but these are variables which we are not able to control. Ideally, we should have measured them before the experiment was conducted, but this is not always possible. Examples are: soil texture, soil organic matter, precipitation, solar radiation, previous crop, planting date, etc.
+
+### How can Causal Inference help us?
+
+A causal diagram, such as a DAG (Directed Acyclical Graph) can help us illuminate our assumptions before we collect the data and consider measuring instrumental variables before it is too late. With a good DAG we might be able to test the *causal* effect of variables such as precipitation, soil texture or soil carbon on the effect of our treatments on yield. 
+
+```{r}
+## Set the seed
+set.seed(123)
+## DAG
+crds <- list(x = c(A = 0, B = 0, Y = 1), y = c(A = 1, B = -1, Y = 0))
+dag <- dagify(Y ~ A + B, coords = crds)
+
+ggdag(dag) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  theme_dag_blank() + 
+  ggtitle("A and B have causal paths to Y")
+
+Sigma <- matrix(c(1, 0.2, 0.2, 1), nrow = 2)
+AB <- mvrnorm(n = 30, mu = c(0, 0), Sigma = Sigma, empirical = TRUE)
+
+## Are A and B related?
+cor(AB)[1,2]
+
+Y <- 2 + 1.5 * AB[,1] + 3 * AB[,2] + rnorm(30, sd = 0.3)
+dat <- data.frame(Y = Y, A = AB[,1], B = AB[,2])
+
+ggplot(data = dat, aes(x = A, y = B)) + 
+  geom_point() + 
+  ggtitle("A and B are not related")
+
+fit1.1 <- lm(Y ~ A + B, data = dat)
+fit1.2 <- lm(Y ~ B + A, data = dat)
+
+## The correlation between the parameters for A and B
+## are of the opposite sign as the correlation between 
+## the variables
+cov2cor(vcov(fit1.1))[1,3]
+
+## Notice that B is significant after controlling for A and viceversa
+anova(fit1.1)
+anova(fit1.2)
+
+## However, with this DAG
+crds1 <- list(x = c(A = 0, B = 0, Y = 1), y = c(A = 1, B = -1, Y = 0))
+dag1 <- dagify(Y ~ A, B ~ A, coords = crds)
+
+ggdag(dag1) + 
+  geom_dag_node(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  theme_dag_blank() + 
+  ggtitle("There is no causal path from A to B")
+
+A <- rnorm(30)
+B <- 1.5 * A + rnorm(30, sd = 0.3)
+Y <- 3 * A + rnorm(30, sd = 0.3)
+dat1 <- data.frame(Y = Y, A = A, B = B)
+fit2.1 <- lm(Y ~ A + B, data = dat1)
+fit2.2 <- lm(Y ~ B + A, data = dat1)
+
+anova(fit2.1)
+anova(fit2.2)
+
+summary(fit2.1)
+
+## What if A and B are strongly related?
+crds2 <- list(x = c(A = 0, B = 0, D = 0, Y = 1), y = c(A = 1, B = -1, D = 0, Y = 0))
+dag2 <- dagify(Y ~ A + B, A ~ D, B ~ D, coords = crds2, latent = "D")
+
+ggdag(dag2) + 
+  geom_dag_point(color = "brown") + 
+  geom_dag_text(color = "white") + 
+  theme_dag_blank() + 
+  ggtitle("A and B have causal paths to Y")
+
+Sigma <- matrix(c(1, 0.7, 0.7, 1), nrow = 2)
+AB <- mvrnorm(n = 30, mu = c(0, 0), Sigma = Sigma, empirical = TRUE)
+
+Y <- 2 + 1.5 * AB[,1] + 3 * AB[,2] + rnorm(30, sd = 0.3)
+dat2 <- data.frame(Y = Y, A = AB[,1], B = AB[,2])
+fit3.1 <- lm(Y ~ A + B, data = dat2)
+fit3.2 <- lm(Y ~ B + A, data = dat2)
+
+cov2cor(vcov(fit3.1))[2,3]
+```
